@@ -7,7 +7,6 @@
 #include <functional>
 #include <sstream>
 #include <deque>
-#include <string>
 #include <iomanip>
 #include "physics.h"
 #include "algs.h"
@@ -52,22 +51,28 @@ std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double 
 }
 
 
+std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
+	std::vector<double> T_vec;
+	double dT = (TMax - TMin)/(TSteps-1);
+	for(int i=0; i<TSteps; ++i)
+		T_vec.push_back(TMin + i*dT);
+	return T_vec;
+}
+
+
 void compIsing(unsigned int L, double TMin, double TMax, unsigned int TSteps, std::string measurement, std::string filename, int avgN){
 	std::vector<double> result_vec(TSteps, 0);
 	std::string progressStr = std::string(TSteps, '.');
 	std::cout << progressStr.c_str() << std::endl;
 
-	std::vector<double> T_vec;
-	double dT = (TMax - TMin)/(TSteps-1);
-	for(int i=0; i<TSteps; ++i)
-		T_vec.push_back(TMin + i*dT);
+	auto T_vec = getTemps(TMin, TMax, TSteps);
 
 	#pragma omp parallel for num_threads(3)
 	for(int i=0; i<TSteps; ++i){
 		auto grid = getRelaxedSys(L, T_vec[i]);
-		if(measurement == "En")
+		if(measurement == "energy")
 			result_vec[i] = avg_En(grid, 1.0/T_vec[i], avgN);
-		else if(measurement == "Mag")
+		else if(measurement == "mag")
 			result_vec[i] = avg_m(grid, 1.0/T_vec[i], avgN);
 		else if(measurement == "cv")
 			result_vec[i] = avg_cv(grid, 1.0/T_vec[i], avgN);
@@ -92,7 +97,6 @@ void compIsing(unsigned int L, double TMin, double TMax, unsigned int TSteps, st
 
 void writeEndState(int L, double T, std::string filename) {
 	auto grid = getRelaxedSys(L, T);
-//	metropolis_sweeps(grid, L, 1.0/T, 100);
 
 	std::ofstream fileOut(filename);
 	for (int i = 0; i < L; ++i){
@@ -108,8 +112,8 @@ void writeEndState(int L, double T, std::string filename) {
 
 
 int main(int argc, char* argv[]){
-	int avgN=1000, L=30;
-	double TMin=0.1, TMax=4.53, TSteps=10;
+	unsigned int avgN=1000, L=30, TSteps=10;
+	double TMin=0.1, TMax=4.53;
 	std::string measureStr = "En", filename = "out";
 
 	if (argc < 2) {
@@ -121,49 +125,41 @@ int main(int argc, char* argv[]){
 	for (int i = 1; i < argc; ++i) {
 		arg = argv[i];
 		param = "-L=";
-		if(arg.compare(0, param.length(), param) == 0){
+		if(arg.compare(0, param.length(), param) == 0)
 			L = atoi(arg.substr(param.length()).c_str());
-		}
 
 		param = "-TSteps=";
-		if(arg.compare(0, param.length(), param) == 0){
+		if(arg.compare(0, param.length(), param) == 0)
 			TSteps = atoi(arg.substr(param.length()).c_str());
-		}
 
 		param = "-avgN=";
-		if(arg.compare(0, param.length(), param) == 0){
+		if(arg.compare(0, param.length(), param) == 0)
 			avgN = atoi(arg.substr(param.length()).c_str());
-		}
 
 		param = "-TMin=";
-		if(arg.compare(0, param.length(), param) == 0){
+		if(arg.compare(0, param.length(), param) == 0)
 			TMin = atof(arg.substr(param.length()).c_str());
-		}
 
 		param = "-TMax=";
-		if(arg.compare(0, param.length(), param) == 0){
+		if(arg.compare(0, param.length(), param) == 0)
 			TMax = atof(arg.substr(param.length()).c_str());
-		}
 
 		param = "-measure=";
-		if(arg.compare(0, param.length(), param) == 0){
-				measureStr = arg.substr(param.length());
-		}
+		if(arg.compare(0, param.length(), param) == 0)
+			measureStr = arg.substr(param.length());
 
 		param = "-o=";
-		if(arg.compare(0, param.length(), param) == 0){
+		if(arg.compare(0, param.length(), param) == 0)
 			filename = arg.substr(param.length());
-		}
 	}
 
-	compIsing(L, TMin, TMax, TSteps, measureStr, filename, avgN);
-
-
-//	 states on different Temperatues
-//	L=200;
-//	std::vector<double> T_vec = {0.8*Tc, 0.9*Tc, 0.95*Tc, 1.0*Tc, 1.1*Tc, 2.0*Tc};
-//	for(int i=0; i<T_vec.size(); ++i)
-//		writeEndState(L, T_vec[i], "ising_state"+ to_string(i)+".txt");
+	if(measureStr == "states"){
+		auto T_vec = getTemps(TMin, TMax, TSteps);
+		for(int i=0; i<T_vec.size(); ++i)
+			writeEndState(L, T_vec[i], filename+to_string(i)+".txt");
+	}
+	else
+		compIsing(L, TMin, TMax, TSteps, measureStr, filename, avgN);
 
 	return 0;
 }
