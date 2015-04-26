@@ -3,6 +3,7 @@
 #include <random>
 #include <fstream>
 #include <sstream>
+#include <omp.h>
 #include "physics.h"
 #include "algs.h"
 
@@ -40,6 +41,8 @@ std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double 
 std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
 	std::vector<double> T_vec;
 	double dT = (TMax - TMin)/(TSteps-1);
+	if(TSteps==1)
+		dT=0;
 	for(int i=0; i<TSteps; ++i)
 		T_vec.push_back(TMin + i*dT);
 	return T_vec;
@@ -50,10 +53,9 @@ void compIsing(unsigned int L, double TMin, double TMax, unsigned int TSteps, st
 	std::vector<double> result_vec(TSteps, 0);
 	std::string progressStr = std::string(TSteps, '.');
 	std::cout << progressStr.c_str() << std::endl;
-
 	auto T_vec = getTemps(TMin, TMax, TSteps);
 
-	#pragma omp parallel for num_threads(3)
+	#pragma omp parallel for
 	for(int i=0; i<TSteps; ++i){
 		auto grid = getRelaxedSys(L, T_vec[i]);
 		if(measurement == "energy")
@@ -98,7 +100,7 @@ void writeEndState(int L, double T, std::string filename) {
 
 
 int main(int argc, char* argv[]){
-	unsigned int avgN=500, L=30, TSteps=10;
+	unsigned int avgN=500, L=30, TSteps=10, threadN=2;
 	double TMin=0.1, TMax=4.53;
 	std::string measureStr = "En", filename = "out";
 
@@ -122,21 +124,30 @@ int main(int argc, char* argv[]){
 		if(arg.compare(0, param.length(), param) == 0)
 			avgN = atoi(arg.substr(param.length()).c_str());
 
-		param = "-TMin=";
+		param = "-threads=";
 		if(arg.compare(0, param.length(), param) == 0)
+			threadN = atoi(arg.substr(param.length()).c_str());
+		omp_set_num_threads(threadN);
+
+		param = "-TMin=";
+		if(arg.compare(0, param.length(), param) == 0) {
 			TMin = atof(arg.substr(param.length()).c_str());
+		}
 
 		param = "-TMax=";
-		if(arg.compare(0, param.length(), param) == 0)
+		if(arg.compare(0, param.length(), param) == 0) {
 			TMax = atof(arg.substr(param.length()).c_str());
+		}
 
 		param = "-measure=";
-		if(arg.compare(0, param.length(), param) == 0)
+		if(arg.compare(0, param.length(), param) == 0) {
 			measureStr = arg.substr(param.length());
+		}
 
 		param = "-o=";
-		if(arg.compare(0, param.length(), param) == 0)
+		if(arg.compare(0, param.length(), param) == 0) {
 			filename = arg.substr(param.length());
+		}
 	}
 
 	if(measureStr == "states"){
