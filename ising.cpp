@@ -1,13 +1,8 @@
 #include <iostream>
 #include <vector>
-#include <array>
 #include <random>
-#include <chrono>
 #include <fstream>
-#include <functional>
 #include <sstream>
-#include <deque>
-#include <iomanip>
 #include "physics.h"
 #include "algs.h"
 
@@ -17,15 +12,6 @@ std::string to_string(T const & value){
    std::stringstream ss;
    ss << value;
    return ss.str();
-}
-
-
-void printGrid(std::vector<std::vector<int> >& grid, const int L){
-	for (int i = 0; i < L; ++i){
-		for (int j = 0; j < L; ++j)
-			std::cout << ((grid[i][j] == 1)?"1":" ");
-		std::cout << std::endl;
-	}
 }
 
 
@@ -112,7 +98,7 @@ void writeEndState(int L, double T, std::string filename) {
 
 
 int main(int argc, char* argv[]){
-	unsigned int avgN=1000, L=30, TSteps=10;
+	unsigned int avgN=500, L=30, TSteps=10;
 	double TMin=0.1, TMax=4.53;
 	std::string measureStr = "En", filename = "out";
 
