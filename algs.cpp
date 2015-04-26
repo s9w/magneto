@@ -28,27 +28,6 @@ double metropolis_sweeps(std::vector<std::vector<int> >& grid, const int L, doub
     return dE_sweep*1.0f/(L*L*n);
 }
 
-double metropolis_sweeps_B(std::vector<std::vector<int> >& grid, const int L, double beta, int n, double B) {
-    long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
-    std::mt19937 generator(seed1);
-    std::uniform_int_distribution <int> dist_grid(0,L-1);
-    std::uniform_real_distribution <double > dist_one(0.0, 1.0);
-
-    int dE_sweep = 0;
-    int flipIdx1, flipIdx2;
-    double dE;
-    for (int i = 0; i < L*L*n; ++i){
-        flipIdx1 = dist_grid(generator);
-        flipIdx2 = dist_grid(generator);
-        dE = calc_dE_B(grid, flipIdx1, flipIdx2, L, B);
-        if (dE <= 0 || (dist_one(generator)<exp(-dE*beta)) ){
-            grid[flipIdx1][flipIdx2] *= -1;
-            dE_sweep += dE;
-        }
-    }
-    return dE_sweep*1.0f/(L*L*n);
-}
-
 
 void wangRun(std::vector<std::vector<int> >& grid, double T) {
     long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
