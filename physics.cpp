@@ -106,7 +106,6 @@ double avg_cv(std::vector<std::vector<int> > grid, double beta, int avg_n) {
         E_avg += E;
         E2_avg += E*E;
 		metropolis_sweeps(grid, L, beta, 15);
-//        avg_n++;
     }
     E_avg = E_avg/(avg_n);
     E2_avg = E2_avg/(avg_n);
@@ -130,6 +129,5 @@ double avg_chi(std::vector<std::vector<int> > grid, double beta, int avg_n) {
     M_avg = M_avg /(avg_n);
     M2_avg = M2_avg /(avg_n);
     double T = 1.0f/beta;
-//	std::cout << M_avg * M_avg << ", " << M2_avg << ", erg: " << (M2_avg - M_avg * M_avg) << ", T: " << T << std::endl;
     return 1.0*(M2_avg - M_avg * M_avg)/(L*L*T);
 }

@@ -102,7 +102,7 @@ void writeEndState(int L, double T, std::string filename) {
 int main(int argc, char* argv[]){
 	unsigned int avgN=500, L=30, TSteps=10, threadN=2;
 	double TMin=0.1, TMax=4.53;
-	std::string measureStr = "En", filename = "out";
+	std::string measureStr = "energy", filename = "out";
 
 	if (argc < 2) {
 		std::cerr << "Too few arguments. See documentation." << std::endl;
@@ -130,24 +130,20 @@ int main(int argc, char* argv[]){
 		omp_set_num_threads(threadN);
 
 		param = "-TMin=";
-		if(arg.compare(0, param.length(), param) == 0) {
+		if(arg.compare(0, param.length(), param) == 0)
 			TMin = atof(arg.substr(param.length()).c_str());
-		}
 
 		param = "-TMax=";
-		if(arg.compare(0, param.length(), param) == 0) {
+		if(arg.compare(0, param.length(), param) == 0)
 			TMax = atof(arg.substr(param.length()).c_str());
-		}
 
 		param = "-measure=";
-		if(arg.compare(0, param.length(), param) == 0) {
+		if(arg.compare(0, param.length(), param) == 0)
 			measureStr = arg.substr(param.length());
-		}
 
 		param = "-o=";
-		if(arg.compare(0, param.length(), param) == 0) {
+		if(arg.compare(0, param.length(), param) == 0)
 			filename = arg.substr(param.length());
-		}
 	}
 
 	if(measureStr == "states"){
