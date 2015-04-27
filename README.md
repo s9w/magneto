@@ -29,7 +29,7 @@ To output system states, use `-measure=states`. A number of csv files equivalent
 ![Example state](http://i.imgur.com/xXkFltH.png)
 
 ### Movie
-When movie mode is enabled with `-measure=movie`, a number of system states are outputted. The format is like above, the different states are divided by a blank line. Note that `TMin` us used as temperature.
+When movie mode is enabled with `-measure=movie`, a number of system states are outputted. The format is like above, the different states are divided by a blank line. Note that `TMin` is used as temperature.
 
 ### Energy
 `-measure=energy` measures the energy of the system given by the hamiltonian. It's averaged over `avgN` measurements of different systems.
@@ -45,7 +45,7 @@ When movie mode is enabled with `-measure=movie`, a number of system states are 
 
 ## Options
 Overview of all parameters and their defaults:
-- `-L=30`: The size of the grid. Produces grid of size L*L
+- `-L=30`: The length of the grid. Produces grid of size L*L
 - `-TMin=0.1`: Minimal temperature
 - `-TMin=4.53`: Maximal temperature. Approx 2*T_critical
 - `-TSteps=10`: Number of temperature steps. Divides the range into 10 pieces
