@@ -101,11 +101,31 @@ void writeEndState(unsigned int L, double T, std::string filename) {
 }
 
 
+void writeMovie(unsigned int L, double T, std::string filename, int frames,
+				const std::function<void(std::vector<std::vector<int> >&, double, int)>& algFP, int algN) {
+	auto grid = getRelaxedSys(L, T);
+	std::ofstream fileOut(filename);
+	for(int frame=0; frame<frames; ++frame) {
+		for (int i = 0; i < L; ++i) {
+			for (int j = 0; j < L; ++j) {
+				fileOut << ((grid[i][j] == 1) ? "1" : "0");
+				if (j < L - 1)
+					fileOut << ",";
+			}
+			fileOut << std::endl;
+		}
+		fileOut << std::endl;
+		algFP(grid, T, algN);
+	}
+	fileOut.close();
+}
+
+
 int main(int argc, char* argv[]){
-	unsigned int avgN=500, L=30, TSteps=10, threadN=3, algReps =5;
+	unsigned int avgN=500, L=30, TSteps=10, threadN=3, algReps=5, frameCount=25;
 	double TMin=0.1, TMax=4.53;
 	std::string measureStr = "energy", filename = "out", algStr="metr";
-	auto evolveFP = metropolis_sweeps;
+	auto algFP = metropolis_sweeps;
 
 	if (argc < 2) {
 		std::cerr << "Too few arguments. See documentation." << std::endl;
@@ -132,6 +152,10 @@ int main(int argc, char* argv[]){
 		if(arg.compare(0, param.length(), param) == 0)
 			algReps = atoi(arg.substr(param.length()).c_str());
 
+		param = "-frames=";
+		if(arg.compare(0, param.length(), param) == 0)
+			frameCount = atoi(arg.substr(param.length()).c_str());
+
 		param = "-threads=";
 		if(arg.compare(0, param.length(), param) == 0)
 			threadN = atoi(arg.substr(param.length()).c_str());
@@ -153,7 +177,7 @@ int main(int argc, char* argv[]){
 		if(arg.compare(0, param.length(), param) == 0)
 			algStr = arg.substr(param.length());
 		if(algStr == "sw")
-			evolveFP = wangRepeats;
+			algFP = wangRepeats;
 
 		param = "-o=";
 		if(arg.compare(0, param.length(), param) == 0)
@@ -165,8 +189,11 @@ int main(int argc, char* argv[]){
 		for(int i=0; i<T_vec.size(); ++i)
 			writeEndState(L, T_vec[i], filename+to_string(i)+".txt");
 	}
+	else if(measureStr == "movie"){
+		writeMovie(L, TMin, filename+".txt", frameCount, algFP, algReps);
+	}
 	else
-		compIsing(L, TMin, TMax, TSteps, measureStr, filename, avgN, algReps, evolveFP);
+		compIsing(L, TMin, TMax, TSteps, measureStr, filename, avgN, algReps, algFP);
 
 	return 0;
 }

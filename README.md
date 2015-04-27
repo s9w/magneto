@@ -28,6 +28,9 @@ To output system states, use `-measure=states`. A number of csv files equivalent
 
 ![Example state](http://i.imgur.com/xXkFltH.png)
 
+### Movie
+When movie mode is enabled with `-measure=movie`, a number of system states are outputted. The format is like above, the different states are divided by a blank line. Note that `TMin` us used as temperature.
+
 ### Energy
 `-measure=energy` measures the energy of the system given by the hamiltonian. It's averaged over `avgN` measurements of different systems.
 
@@ -51,4 +54,5 @@ Overview of all parameters and their defaults:
 - `-threads=3`: Number of parallel threads
 - `-alg=metr`: Algorithm to use. Either `metro` for Metropolis or `sw` for Swendsen-Wang
 - `-algN=5`: How often to run the evolving Algorithm. Measured in sweeps for Metropolis (one sweep is L*L runs)
-- `-measure=energy`: Type of meausurement. Valid parameters are: `energy`, `mag` (magnetization), `cv` (heat capacity), `chi` (magnetic susceptibility), `corrLen` (correlation Length), `states` (system states)
+- `-measure=energy`: Type of meausurement. Valid parameters are: `energy`, `mag` (magnetization), `cv` (heat capacity), `chi` (magnetic susceptibility), `corrLen` (correlation Length), `states` (system states), `movie` (several states)
+- `-frames=25`: Number of frames system snapshots to output if in movie mode
