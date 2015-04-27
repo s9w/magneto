@@ -49,25 +49,27 @@ std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
 }
 
 
-void compIsing(unsigned int L, double TMin, double TMax, unsigned int TSteps, std::string measurement, std::string filename, int avgN){
+void compIsing(unsigned int L, double TMin, double TMax, unsigned int TSteps, std::string measurement,
+			   std::string filename, int avgN, int algReps, const std::function<void(std::vector<std::vector<int> >&, double, int)> &fp){
 	std::vector<double> result_vec(TSteps, 0);
 	std::string progressStr = std::string(TSteps, '.');
 	std::cout << progressStr.c_str() << std::endl;
 	auto T_vec = getTemps(TMin, TMax, TSteps);
 
+
 	#pragma omp parallel for
 	for(int i=0; i<TSteps; ++i){
 		auto grid = getRelaxedSys(L, T_vec[i]);
 		if(measurement == "energy")
-			result_vec[i] = avg_En(grid, 1.0/T_vec[i], avgN);
+			result_vec[i] = avg_En(grid, T_vec[i], avgN, algReps, fp);
 		else if(measurement == "mag")
-			result_vec[i] = avg_m(grid, 1.0/T_vec[i], avgN);
+			result_vec[i] = avg_m(grid, T_vec[i], avgN, algReps, fp);
 		else if(measurement == "cv")
-			result_vec[i] = avg_cv(grid, 1.0/T_vec[i], avgN);
+			result_vec[i] = avg_cv(grid, T_vec[i], avgN, algReps, fp);
 		else if(measurement == "chi")
-			result_vec[i] = avg_chi(grid, 1.0/T_vec[i], avgN);
+			result_vec[i] = avg_chi(grid, T_vec[i], avgN, algReps, fp);
 		else if(measurement == "corrLen")
-			result_vec[i] = corr_len(grid, T_vec[i], avgN);
+			result_vec[i] = corr_len(grid, T_vec[i], avgN, algReps, fp);
 		else{
 			std::cerr << "Invalid measurement!" << std::endl;
 		}
@@ -83,7 +85,7 @@ void compIsing(unsigned int L, double TMin, double TMax, unsigned int TSteps, st
 }
 
 
-void writeEndState(int L, double T, std::string filename) {
+void writeEndState(unsigned int L, double T, std::string filename) {
 	auto grid = getRelaxedSys(L, T);
 
 	std::ofstream fileOut(filename);
@@ -100,9 +102,10 @@ void writeEndState(int L, double T, std::string filename) {
 
 
 int main(int argc, char* argv[]){
-	unsigned int avgN=500, L=30, TSteps=10, threadN=2;
+	unsigned int avgN=500, L=30, TSteps=10, threadN=3, algReps =5;
 	double TMin=0.1, TMax=4.53;
-	std::string measureStr = "energy", filename = "out";
+	std::string measureStr = "energy", filename = "out", algStr="metr";
+	auto evolveFP = metropolis_sweeps;
 
 	if (argc < 2) {
 		std::cerr << "Too few arguments. See documentation." << std::endl;
@@ -112,6 +115,7 @@ int main(int argc, char* argv[]){
 	std::string arg, param;
 	for (int i = 1; i < argc; ++i) {
 		arg = argv[i];
+
 		param = "-L=";
 		if(arg.compare(0, param.length(), param) == 0)
 			L = atoi(arg.substr(param.length()).c_str());
@@ -123,6 +127,10 @@ int main(int argc, char* argv[]){
 		param = "-avgN=";
 		if(arg.compare(0, param.length(), param) == 0)
 			avgN = atoi(arg.substr(param.length()).c_str());
+
+		param = "-algN=";
+		if(arg.compare(0, param.length(), param) == 0)
+			algReps = atoi(arg.substr(param.length()).c_str());
 
 		param = "-threads=";
 		if(arg.compare(0, param.length(), param) == 0)
@@ -141,6 +149,12 @@ int main(int argc, char* argv[]){
 		if(arg.compare(0, param.length(), param) == 0)
 			measureStr = arg.substr(param.length());
 
+		param = "-alg=";
+		if(arg.compare(0, param.length(), param) == 0)
+			algStr = arg.substr(param.length());
+		if(algStr == "sw")
+			evolveFP = wangRepeats;
+
 		param = "-o=";
 		if(arg.compare(0, param.length(), param) == 0)
 			filename = arg.substr(param.length());
@@ -152,8 +166,7 @@ int main(int argc, char* argv[]){
 			writeEndState(L, T_vec[i], filename+to_string(i)+".txt");
 	}
 	else
-		compIsing(L, TMin, TMax, TSteps, measureStr, filename, avgN);
+		compIsing(L, TMin, TMax, TSteps, measureStr, filename, avgN, algReps, evolveFP);
 
 	return 0;
 }
-

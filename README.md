@@ -48,5 +48,7 @@ Overview of all parameters and their defaults:
 - `-TSteps=10`: Number of temperature steps. Divides the range into 10 pieces
 - `-avgN=500`: Number of systems to use for computations
 - `-o=out`: Filename base for the results. `.txt` gets appended 
-- `-threads=2`: Number of parallel threads
+- `-threads=3`: Number of parallel threads
+- `-alg=metr`: Algorithm to use. Either `metro` for Metropolis or `sw` for Swendsen-Wang
+- `-algN=5`: How often to run the evolving Algorithm. Measured in sweeps for Metropolis (one sweep is L*L runs)
 - `-measure=energy`: Type of meausurement. Valid parameters are: `energy`, `mag` (magnetization), `cv` (heat capacity), `chi` (magnetic susceptibility), `corrLen` (correlation Length), `states` (system states)
