@@ -4,16 +4,10 @@
 #include <fstream>
 #include <sstream>
 #include <omp.h>
+
 #include "physics.h"
 #include "algs.h"
-
-
-template <typename T>
-std::string to_string(T const & value){
-   std::stringstream ss;
-   ss << value;
-   return ss.str();
-}
+#include "System.h"
 
 
 std::vector<std::vector<int> > genRandomSystem(const unsigned int L, int seedOffset){
@@ -30,102 +24,72 @@ std::vector<std::vector<int> > genRandomSystem(const unsigned int L, int seedOff
 }
 
 
-std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, int seedOffset=0){
-	auto grid = genRandomSystem(L, seedOffset);
-	for(int i=0; i<500; ++i)
-		wangRun(grid, T);
-	return grid;
+
+
+std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, double J, unsigned int n1, int alg, int seedOffset=0) {
+    auto grid = genRandomSystem(L, seedOffset);
+    if(alg==0)
+        wangRepeats(grid, T, n1, J);
+    else
+        metropolis_sweeps(grid, T, n1, J);
+    return grid;
 }
+
+
+
+//void writeEndState(unsigned int L, double T, std::string filename) {
+//	auto grid = getRelaxedSys(L, T, J);
+//
+//	std::ofstream fileOut(filename);
+//	for (int i = 0; i < L; ++i){
+//		for (int j = 0; j < L; ++j) {
+//			fileOut << ((grid[i][j] == 1) ? "1" : "0");
+//			if(j<L-1)
+//				fileOut << ",";
+//		}
+//		fileOut << std::endl;
+//	}
+//	fileOut.close();
+//}
+//
+//
+//void writeMovie(unsigned int L, double T, std::string filename, int frames,
+//				const std::function<void(std::vector<std::vector<int> >&, double, int)>& algFP, int algN) {
+//	auto grid = getRelaxedSys(L, T);
+//	std::ofstream fileOut(filename);
+//	for(int frame=0; frame<frames; ++frame) {
+//		for (int i = 0; i < L; ++i) {
+//			for (int j = 0; j < L; ++j) {
+//				fileOut << ((grid[i][j] == 1) ? "1" : "0");
+//				if (j < L - 1)
+//					fileOut << ",";
+//			}
+//			fileOut << std::endl;
+//		}
+//		fileOut << std::endl;
+//		algFP(grid, T, algN);
+//	}
+//	fileOut.close();
+//}
 
 
 std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
-	std::vector<double> T_vec;
-	double dT = (TMax - TMin)/(TSteps-1);
-	if(TSteps==1)
-		dT=0;
-	for(int i=0; i<TSteps; ++i)
-		T_vec.push_back(TMin + i*dT);
-	return T_vec;
+    std::vector<double> T_vec;
+    double dT = (TMax - TMin)/(TSteps-1);
+    if(TSteps==1)
+        dT=0;
+    for(int i=0; i<TSteps; ++i)
+        T_vec.push_back(TMin + i*dT);
+    return T_vec;
 }
 
-
-void compIsing(unsigned int L, double TMin, double TMax, unsigned int TSteps, std::string measurement,
-			   std::string filename, int avgN, int algReps, const std::function<void(std::vector<std::vector<int> >&, double, int)> &fp){
-	std::vector<double> result_vec(TSteps, 0);
-	std::string progressStr = std::string(TSteps, '.');
-	std::cout << progressStr.c_str() << std::endl;
-	auto T_vec = getTemps(TMin, TMax, TSteps);
-
-
-	#pragma omp parallel for
-	for(int i=0; i<TSteps; ++i){
-		auto grid = getRelaxedSys(L, T_vec[i]);
-		if(measurement == "energy")
-			result_vec[i] = avg_En(grid, T_vec[i], avgN, algReps, fp);
-		else if(measurement == "mag")
-			result_vec[i] = avg_m(grid, T_vec[i], avgN, algReps, fp);
-		else if(measurement == "cv")
-			result_vec[i] = avg_cv(grid, T_vec[i], avgN, algReps, fp);
-		else if(measurement == "chi")
-			result_vec[i] = avg_chi(grid, T_vec[i], avgN, algReps, fp);
-		else if(measurement == "corrLen")
-			result_vec[i] = corr_len(grid, T_vec[i], avgN, algReps, fp);
-		else{
-			std::cerr << "Invalid measurement!" << std::endl;
-		}
-		std::cout << ".";
-	}
-	std::cout << std::endl;
-
-	// write results
-	std::ofstream fileOut(filename+".txt");
-	for (int i = 0; i < TSteps; ++i)
-		fileOut << T_vec[i] << ", " << result_vec[i] << std::endl;
-	fileOut.close();
-}
-
-
-void writeEndState(unsigned int L, double T, std::string filename) {
-	auto grid = getRelaxedSys(L, T);
-
-	std::ofstream fileOut(filename);
-	for (int i = 0; i < L; ++i){
-		for (int j = 0; j < L; ++j) {
-			fileOut << ((grid[i][j] == 1) ? "1" : "0");
-			if(j<L-1)
-				fileOut << ",";
-		}
-		fileOut << std::endl;
-	}
-	fileOut.close();
-}
-
-
-void writeMovie(unsigned int L, double T, std::string filename, int frames,
-				const std::function<void(std::vector<std::vector<int> >&, double, int)>& algFP, int algN) {
-	auto grid = getRelaxedSys(L, T);
-	std::ofstream fileOut(filename);
-	for(int frame=0; frame<frames; ++frame) {
-		for (int i = 0; i < L; ++i) {
-			for (int j = 0; j < L; ++j) {
-				fileOut << ((grid[i][j] == 1) ? "1" : "0");
-				if (j < L - 1)
-					fileOut << ",";
-			}
-			fileOut << std::endl;
-		}
-		fileOut << std::endl;
-		algFP(grid, T, algN);
-	}
-	fileOut.close();
-}
-
+template<typename T>
+std::string to_string(T const & value);
 
 int main(int argc, char* argv[]){
-	unsigned int avgN=500, L=30, TSteps=10, threadN=3, algReps=5, frameCount=25;
+	unsigned int TSteps=10;
 	double TMin=0.1, TMax=4.53;
-	std::string measureStr = "energy", filename = "out", algStr="metr";
-	auto algFP = metropolis_sweeps;
+	Config cfg;
 
 	if (argc < 2) {
 		std::cerr << "Too few arguments. See documentation." << std::endl;
@@ -138,28 +102,53 @@ int main(int argc, char* argv[]){
 
 		param = "-L=";
 		if(arg.compare(0, param.length(), param) == 0)
-			L = atoi(arg.substr(param.length()).c_str());
+			cfg.L = atoi(arg.substr(param.length()).c_str());
 
-		param = "-TSteps=";
+		param = "-N2=";
 		if(arg.compare(0, param.length(), param) == 0)
-			TSteps = atoi(arg.substr(param.length()).c_str());
+			cfg.n2 = atoi(arg.substr(param.length()).c_str());
 
-		param = "-avgN=";
+		param = "-N3=";
 		if(arg.compare(0, param.length(), param) == 0)
-			avgN = atoi(arg.substr(param.length()).c_str());
-
-		param = "-algN=";
-		if(arg.compare(0, param.length(), param) == 0)
-			algReps = atoi(arg.substr(param.length()).c_str());
-
-		param = "-frames=";
-		if(arg.compare(0, param.length(), param) == 0)
-			frameCount = atoi(arg.substr(param.length()).c_str());
+			cfg.n3 = atoi(arg.substr(param.length()).c_str());
 
 		param = "-threads=";
 		if(arg.compare(0, param.length(), param) == 0)
-			threadN = atoi(arg.substr(param.length()).c_str());
-		omp_set_num_threads(threadN);
+			cfg.threadCount = atoi(arg.substr(param.length()).c_str());
+		omp_set_num_threads(cfg.threadCount);
+
+		param = "-J=";
+		if(arg.compare(0, param.length(), param) == 0)
+			cfg.J = atof(arg.substr(param.length()).c_str());
+
+        param = "-alg1=";
+        if(arg.compare(0, param.length(), param) == 0)
+            cfg.alg1 = (arg.substr(param.length())=="metro") ? 0 : 1;
+
+		param = "-alg2=";
+		if(arg.compare(0, param.length(), param) == 0)
+			cfg.alg2 = (arg.substr(param.length())=="metro") ? 0 : 1;
+
+		param = "-en=";
+		if(arg.compare(0, param.length(), param) == 0)
+			cfg.fileEnergy = arg.substr(param.length());
+
+        param = "-mag=";
+        if(arg.compare(0, param.length(), param) == 0)
+            cfg.fileMag = arg.substr(param.length());
+
+        param = "-cv=";
+        if(arg.compare(0, param.length(), param) == 0)
+            cfg.fileCv = arg.substr(param.length());
+
+        param = "-chi=";
+        if(arg.compare(0, param.length(), param) == 0)
+            cfg.fileChi = arg.substr(param.length());
+
+		// Temperatures
+		param = "-TSteps=";
+		if(arg.compare(0, param.length(), param) == 0)
+			TSteps = atoi(arg.substr(param.length()).c_str());
 
 		param = "-TMin=";
 		if(arg.compare(0, param.length(), param) == 0)
@@ -168,32 +157,44 @@ int main(int argc, char* argv[]){
 		param = "-TMax=";
 		if(arg.compare(0, param.length(), param) == 0)
 			TMax = atof(arg.substr(param.length()).c_str());
-
-		param = "-measure=";
-		if(arg.compare(0, param.length(), param) == 0)
-			measureStr = arg.substr(param.length());
-
-		param = "-alg=";
-		if(arg.compare(0, param.length(), param) == 0)
-			algStr = arg.substr(param.length());
-		if(algStr == "sw")
-			algFP = wangRepeats;
-
-		param = "-o=";
-		if(arg.compare(0, param.length(), param) == 0)
-			filename = arg.substr(param.length());
 	}
+	auto temps = getTemps(TMin, TMax, TSteps);
+    std::vector<System> systems;
+    for(double T : temps){
+		cfg.T = T;
+        systems.push_back(System(cfg));
+    }
 
-	if(measureStr == "states"){
-		auto T_vec = getTemps(TMin, TMax, TSteps);
-		for(int i=0; i<T_vec.size(); ++i)
-			writeEndState(L, T_vec[i], filename+to_string(i)+".txt");
-	}
-	else if(measureStr == "movie"){
-		writeMovie(L, TMin, filename+".txt", frameCount, algFP, algReps);
-	}
-	else
-		compIsing(L, TMin, TMax, TSteps, measureStr, filename, avgN, algReps, algFP);
+    std::string progressStr = std::string(TSteps, '.');
+    std::cout << progressStr.c_str() << std::endl;
+    #pragma omp parallel for
+    for(unsigned int i=0; i<systems.size(); ++i){
+        systems[i].compute();
+        std::cout << ".";
+    }
+
+    std::vector<std::string> filenames = {cfg.fileEnergy, cfg.fileMag, cfg.fileCv, cfg.fileChi};
+    std::ofstream fileOut;
+    for(unsigned int i=0; i<4; ++i){
+        if(! filenames[i].empty()){
+            fileOut.open(filenames[i]+".txt");
+            for (auto& sys : systems)
+                fileOut << to_string(sys.cfg.T) << ", " << sys.results[i] << std::endl;
+            fileOut.close();
+        }
+    }
+
+
+
+//	if(measureStr == "states"){
+//		auto T_vec = getTemps(TMin, TMax, TSteps);
+//		for(int i=0; i<T_vec.size(); ++i)
+//			writeEndState(L, T_vec[i], filename+to_string(i)+".txt");
+//	}
+//	else if(measureStr == "movie"){
+//		writeMovie(L, TMin, filename+".txt", frameCount, algFP, algReps);
+//	}
+//	else
 
 	return 0;
 }

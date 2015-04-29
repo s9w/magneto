@@ -7,7 +7,7 @@
 
 
 
-void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n) {
+void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n, double J) {
     double beta = 1.0f/T;
     unsigned int L = grid.size();
     long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
@@ -16,11 +16,11 @@ void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n) {
     std::uniform_real_distribution <double > dist_one(0.0, 1.0);
 
     int flipIdx1, flipIdx2;
-    int dE;
+    double dE;
     for (int i = 0; i < L*L*n; ++i){
         flipIdx1 = dist_grid(generator);
         flipIdx2 = dist_grid(generator);
-        dE = calc_dE(grid, flipIdx1, flipIdx2, L);
+        dE = J*calc_dE(grid, flipIdx1, flipIdx2, L);
         if (dE <= 0 || (dist_one(generator)<exp(-dE*beta)) ){
             grid[flipIdx1][flipIdx2] *= -1;
         }
@@ -28,12 +28,12 @@ void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n) {
 }
 
 
-void wangRun(std::vector<std::vector<int> >& grid, double T) {
+void wangRun(std::vector<std::vector<int> >& grid, double T, double J) {
     long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed1);
     std::uniform_real_distribution<double> dist(0,1);
     unsigned int L = grid.size();
-    double freezeProbability = 1.0 - exp(-2.0f/T);
+    double freezeProbability = 1.0 - exp(-2.0f*J/T);
     std::vector<std::vector<int> > discovered(L, std::vector<int>(L, 0));
     std::vector<std::vector<int> > doesBondNorth(L, std::vector<int>(L, 0));
     std::vector<std::vector<int> > doesBondEast(L, std::vector<int>(L, 0));
@@ -95,7 +95,7 @@ void wangRun(std::vector<std::vector<int> >& grid, double T) {
     }
 }
 
-void wangRepeats(std::vector<std::vector<int> >& grid, double T, int n) {
+void wangRepeats(std::vector<std::vector<int> >& grid, double T, int n, double J) {
     for (int i = 0; i < n; ++i)
-        wangRun(grid, T);
+        wangRun(grid, T, J);
 }

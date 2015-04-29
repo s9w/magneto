@@ -3,8 +3,7 @@
 A fast parallel C++ program for various computations of the 2D [Ising model](http://en.wikipedia.org/wiki/Ising_model). Example uses:
 
 ```
-ising -L=30 -TSteps=9 -measure=energy -o=energy
-ising -L=30 -TSteps=12 -measure=mag -o=magnetization
+ising -L=30 -TMax=6 -TSteps=10 -en=energy -mag=magnetization
 ```
 
 OpenMP is used for the parallel work as well as some parts of C++11. No other external libraries needed.
@@ -13,46 +12,42 @@ OpenMP is used for the parallel work as well as some parts of C++11. No other ex
 There is already a lot of Ising code out there, but most are sub-optimal for various reasons. Among those are slow performance, unreadable code, nonexistant documentation, missing normalization of the physics or missing observables. I hope this program does slightly better.
 
 ## Usage
-Output filename can be set with `-o=abc`. That'll be extended into `abc.txt`.
+For a fixed grid size, all calculations are done for a range of different temperatures. All relevant details of the simulation as well as the measurements can be controlled. Also see the **[IPython Notebook](http://nbviewer.ipython.org/github/s9w/ising2d/blob/master/usage.ipynb)** for examples.
 
-The grid size can be set with `-L=32`.
+## System parameters
+The **grid size** can be set with `-L=32`, the coupling constant J with `-J=1.0`, and the number of threads with `-threads=3`.
 
-The temperatures are controled with three parameters: Min and max temperature and the number of steps. So `-TMin=0.0 -TMax=3.0 -TSteps=4` would do calculate for T=0.0, T=1.0, T=2.0, T=3.0. It's equivalent to numpy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
+The **temperatures** can be controlled with the three parameters `-TMin=0.1 -TMax=4.53 -TSteps=10`. The odd default `Tmax` value corresponds to twice the critical temperature. The interval is divided into `TSteps` steps. Only the min and max temperature would be calculated with `TSteps=2`. Note that start and endpoint are included! It's equivalent to NumPy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
 
-The grid is randomly initialized with 1 and -1 values. The equilibration is done with the Swendsen-Wang algorithm. From there, a number of different computations can be done. Also see the **[IPython Notebook](http://nbviewer.ipython.org/github/s9w/ising2d/blob/master/usage.ipynb)** for examples. The number of threads can be controlled with `-threads=4`.
+The **initial state** can be set with `-initial=random`. Valid parameters are `random`, `uniform` (all +1), `neel` (antiferromagnetic or "checkerboard") or a filename. If a filename is given, that configuration is loaded. Important: set the grid length first (`-L=50`)! The format is expected to be simple 1 and 0 with no delimiters. Example:
 
-### States
-To output system states, use `-measure=states`. A number of csv files equivalent to `TSteps` will be written. They contain 0 and 1 corresponding to the spin states.
+    1010
+    0100
+    1011
+    1010
 
-**Example**: Computation is started with `ising -TMin=2.5 -TSteps=1 -L=80 -measure=states -o=states`. To plot with matplotlib: `plt.imshow(np.loadtxt("states0.txt",  delimiter=","), cmap=plt.cm.Greys, interpolation ="none")`. Result:
+The algorithm to use in the **equilibration phase** can be set with `-alg1=metro`. Valid parameters are `metro` (Metropolis) and `sw` (Swendsen-Wang). The number of times that algorithm is run during equilibration can be controlled with `-N1=50`.
+
+After the equilibration phase, the algorithm and the number of steps for the **main phase** can be set with `-alg2=metro` and `-N2=500`, works like above. The number of algorithm runs between each step is `-N3=5`. It's 
+
+## Measurements
+The parameter `-record=end` controls when and how often measurements are written. By default (`end`), that's once at the end of the main phase. But they can also be recorded as a series during the main phase with `-record=main`. The number of written results is then `N2`.
+
+Every measurement is written into a separate file. On each line, the output files contain the temperature followed by one or more results of the measurement at that temperature. The file is in csv format (=comma separated).
+
+Energy and magnetization can be recorded with `-en=filename` and `-mag=filename` respectively. Those two are properties that can be measured on the system directly and are averaged during the main phase. With `-record=main`, the ith result is the average of all the previous measurements and therefore only the last value is averaged over `N2`. For the default `-record=end` setting, the result is just the average over the `N2` measurements.
+
+Heat capacity and magnetic susceptibility can be recorded with `-cv=filename` and `-chi=filename` respectively. They are measured from the variation in energy/magnetization (divided by the respective T and T^2 factors). 
+
+Additionally, system states can be written with `-states=filename`. The output is handled slightly different: A file is written for every temperature like `filename0000.txt`, `filename0001.txt` and so on. In the `-record=end` mode, the file format is like the initial state format:
+
+    1010
+    0100
+    1011
+    1010
+
+With `-record=main`, the different states are written directly under each other. **Example**: Computation is started with `ising -TMin=2.5 -TSteps=1 -L=80 -measure=states -o=states`. To plot with matplotlib: `plt.imshow(np.loadtxt("states0.txt",  delimiter=","), cmap=plt.cm.Greys, interpolation ="none")`. Result:
 
 ![Example state](http://i.imgur.com/xXkFltH.png)
 
-### Movie
-When movie mode is enabled with `-measure=movie`, a number of system states are outputted. The format is like above, the different states are divided by a blank line. Note that `TMin` is used as temperature.
-
-### Energy
-`-measure=energy` measures the energy of the system given by the hamiltonian. It's averaged over `avgN` measurements of different systems.
-
-### Magnetization
-`-measure=mag` measures the absolute value of the magnetization. It's averaged over `avgN` measurements of different systems.
-
-### Heat capacity
-`-measure=cv` measures the specific heat capacity from energy variations. Calculated from `avgN` different systems.
-
-### Magnetic Susceptibility
-`-measure=cv` measures the specific heat capacity from the variation of the magnetization. Calculated from `avgN` different systems.
-
-## Options
-Overview of all parameters and their defaults:
-- `-L=30`: The length of the grid. Produces grid of size L*L
-- `-TMin=0.1`: Minimal temperature
-- `-TMin=4.53`: Maximal temperature. Approx 2*T_critical
-- `-TSteps=10`: Number of temperature steps. Divides the range into 10 pieces
-- `-avgN=500`: Number of systems to use for computations
-- `-o=out`: Filename base for the results. `.txt` gets appended 
-- `-threads=3`: Number of parallel threads
-- `-alg=metr`: Algorithm to use. Either `metro` for Metropolis or `sw` for Swendsen-Wang
-- `-algN=5`: How often to run the evolving Algorithm. Measured in sweeps for Metropolis (one sweep is L*L runs)
-- `-measure=energy`: Type of meausurement. Valid parameters are: `energy`, `mag` (magnetization), `cv` (heat capacity), `chi` (magnetic susceptibility), `corrLen` (correlation Length), `states` (system states), `movie` (several states)
-- `-frames=25`: Number of frames system snapshots to output if in movie mode
+todo: correlation length

@@ -16,8 +16,8 @@
 #include <deque>
 #include <iomanip>
 
-void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n);
-void wangRun(std::vector<std::vector<int> >& grid, double T);
-void wangRepeats(std::vector<std::vector<int> >& grid, double T, int n);
+void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n, double J);
+void wangRun(std::vector<std::vector<int> >& grid, double T, double J);
+void wangRepeats(std::vector<std::vector<int> >& grid, double T, int n, double J);
 
 #endif //_IPYNB_ALGS_H_
