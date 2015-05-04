@@ -15,7 +15,7 @@ struct Config{
 };
 
 struct LabConfig{
-	double TMin, TMax;
+	double TMin=0.1, TMax=4.53;
 	unsigned int TSteps;
 	std::string fileEnergy = "", fileMag="", fileCv="", fileChi="", fileStates="";
 };
