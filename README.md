@@ -6,7 +6,7 @@ A fast parallel C++ program for various computations of the 2D [Ising model](htt
 ising -L=30 -TMax=6 -TSteps=10 -en=energy -mag=magnetization
 ```
 
-OpenMP is used for the parallel work as well as some parts of C++11. No other external libraries needed.
+OpenMP is used for the parallel work as well as some parts of C++11. Also boost was needed for the inverse error function.
 
 ## Motivation
 There is already a lot of Ising code out there, but most are sub-optimal for various reasons. Among those are slow performance, unreadable code, nonexistant documentation, missing normalization of the physics or missing observables. I hope this program does slightly better.
@@ -18,6 +18,8 @@ For a fixed grid size, all calculations are done for a range of different temper
 The **grid size** can be set with `-L=32`, the coupling constant J with `-J=1.0`, and the number of threads with `-threads=3`.
 
 The **temperatures** can be controlled with the three parameters `-TMin=0.1 -TMax=4.53 -TSteps=10`. The odd default `Tmax` value corresponds to twice the critical temperature. The interval is divided into `TSteps` steps. Only the min and max temperature would be calculated with `TSteps=2`. Note that start and endpoint are included! It's equivalent to NumPy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
+
+Besides the default uniform distribution of temperatures, they can also be generated with a normal distribution around the critical temperature. That helps to concentrate the computation around the interesting point. Use with `-dist=normal`. Minimum and maximum temperatures are always included, the space between is filled with a normal distribution with sigma=0.9.
 
 The **initial state** can be set with `-initial=random`. Valid parameters are `random`, `uniform` (all +1), `neel` (antiferromagnetic or "checkerboard") or a filename. If a filename is given, that configuration is loaded. Important: set the grid length first (`-L=50`)! The format is expected to be ones and zeros with comma seperation. Example:
 

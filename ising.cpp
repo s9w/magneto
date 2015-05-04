@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <omp.h>
+#include <boost/math/special_functions/erf.hpp>
 
 #include "physics.h"
 #include "algs.h"
@@ -41,6 +42,16 @@ std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
         dT=0;
     for(int i=0; i<TSteps; ++i)
         T_vec.push_back(TMin + i*dT);
+    return T_vec;
+}
+
+std::vector<double> getTempsNormal(double TMin, double TMax, unsigned int TSteps){
+    std::vector<double> T_vec;
+    T_vec.push_back(TMin);
+    double mu=2.269, sigma=0.9;
+    for(int i=1; i<TSteps-1; ++i)
+        T_vec.push_back(sqrt(2)*sigma*boost::math::erf_inv( 2.0/(TSteps-1)*i-1 )+mu);
+    T_vec.push_back(TMax);
     return T_vec;
 }
 
@@ -83,6 +94,8 @@ void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
             cfg.alg2 = (value == "metro") ? 0 : 1;
         else if (key == "record")
             cfg.recordMain = value == "main";
+        else if (key == "dist")
+            labCfg.normalDist = value == "normal";
         else if (key == "en")
             labCfg.fileEnergy = value;
         else if (key == "mag")
@@ -115,7 +128,11 @@ int main(int argc, char* argv[]){
     checkParam(argc, argv, cfg, labCfg);
     omp_set_num_threads(cfg.threadCount);
 
-	auto temps = getTemps(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
+    std::vector<double> temps;
+    if(labCfg.normalDist)
+        temps = getTempsNormal(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
+    else
+	    temps = getTemps(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
     std::vector<System> systems;
     for(double T : temps){
 		cfg.T = T;
