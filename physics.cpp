@@ -1,5 +1,4 @@
 #include "physics.h"
-#include "algs.h"
 
 double calc_E(std::vector<std::vector<int> > &grid) {
     unsigned int L = grid.size();
@@ -30,29 +29,6 @@ double calc_m_abs(std::vector<std::vector<int> >& grid) {
     }
     return abs(m)*1.0f/(L*L);
 }
-
-
-//double avg_En(std::vector<std::vector<int> >& grid, double T, int avg_n, int evolveRuns,
-//              const std::function<void(std::vector<std::vector<int> >&, double, int)> &evolve) {
-//    unsigned int L = grid.size();
-//    double E_avg = 0.0;
-//    for(int i=0; i<avg_n; ++i) {
-//        E_avg += calc_E(grid);
-//        evolve(grid, T, evolveRuns);
-//    }
-//    return E_avg/avg_n;
-//}
-//
-//
-//double avg_m(std::vector<std::vector<int> >& grid, double T, int avg_n, int evolveRuns,
-//             const std::function<void(std::vector<std::vector<int> >&, double, int)> &evolve) {
-//    double m_avg = 0.0;
-//    for(int i=0; i<avg_n; ++i) {
-//        m_avg += calc_m_abs(grid);
-//        evolve(grid, T, evolveRuns);
-//    }
-//    return m_avg/avg_n;
-//}
 
 
 double corr_len(std::vector<std::vector<int> >& grid, double T, int avg_n, int evolveRuns,
@@ -97,39 +73,3 @@ double avg_Z(std::vector<std::vector<int> >& grid, double T, int avg_n, int evol
     }
     return Z_avg/(avg_n);
 }
-
-
-//double avg_cv(std::vector<std::vector<int> >& grid, double T, int avg_n, int evolveRuns,
-//              const std::function<void(std::vector<std::vector<int> >&, double, int)> &evolve) {
-//    unsigned int L = grid.size();
-//    double E_avg = 0.0;
-//    double E2_avg = 0.0;
-//    double E;
-//    for(int i=0; i<avg_n; ++i) {
-//        E = calc_E(grid);
-//        E_avg += E;
-//        E2_avg += E*E;
-//        evolve(grid, T, evolveRuns);
-//    }
-//    E_avg = E_avg/(avg_n);
-//    E2_avg = E2_avg/(avg_n);
-//    return 1.0*(E2_avg - E_avg*E_avg)*L*L/(T*T);
-//}
-//
-//
-//double avg_chi(std::vector<std::vector<int> >& grid, double T, int avg_n, int evolveRuns,
-//               const std::function<void(std::vector<std::vector<int> >&, double, int)> &evolve) {
-//    unsigned int L = grid.size();
-//    double M_avg = 0.0;
-//    double M2_avg = 0.0;
-//    double M;
-//    for(int i=0; i<avg_n; ++i) {
-//        M = calc_m_abs(grid)*L*L;
-//        M_avg += M;
-//        M2_avg += M*M;
-//        evolve(grid, T, evolveRuns);
-//    }
-//    M_avg = M_avg /(avg_n);
-//    M2_avg = M2_avg /(avg_n);
-//    return 1.0*(M2_avg - M_avg * M_avg)/(L*L*T);
-//}

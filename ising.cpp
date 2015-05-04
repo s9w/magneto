@@ -24,8 +24,6 @@ std::vector<std::vector<int> > genRandomSystem(const unsigned int L, int seedOff
 }
 
 
-
-
 std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, double J, unsigned int n1, int alg, int seedOffset=0) {
     auto grid = genRandomSystem(L, seedOffset);
     if(alg==0)
@@ -34,43 +32,6 @@ std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double 
         metropolis_sweeps(grid, T, n1, J);
     return grid;
 }
-
-
-
-//void writeEndState(unsigned int L, double T, std::string filename) {
-//	auto grid = getRelaxedSys(L, T, J);
-//
-//	std::ofstream fileOut(filename);
-//	for (int i = 0; i < L; ++i){
-//		for (int j = 0; j < L; ++j) {
-//			fileOut << ((grid[i][j] == 1) ? "1" : "0");
-//			if(j<L-1)
-//				fileOut << ",";
-//		}
-//		fileOut << std::endl;
-//	}
-//	fileOut.close();
-//}
-//
-//
-//void writeMovie(unsigned int L, double T, std::string filename, int frames,
-//				const std::function<void(std::vector<std::vector<int> >&, double, int)>& algFP, int algN) {
-//	auto grid = getRelaxedSys(L, T);
-//	std::ofstream fileOut(filename);
-//	for(int frame=0; frame<frames; ++frame) {
-//		for (int i = 0; i < L; ++i) {
-//			for (int j = 0; j < L; ++j) {
-//				fileOut << ((grid[i][j] == 1) ? "1" : "0");
-//				if (j < L - 1)
-//					fileOut << ",";
-//			}
-//			fileOut << std::endl;
-//		}
-//		fileOut << std::endl;
-//		algFP(grid, T, algN);
-//	}
-//	fileOut.close();
-//}
 
 
 std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
@@ -86,86 +47,82 @@ std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
 template<typename T>
 std::string to_string(T const & value);
 
+template <typename T>
+std::string to_string2(T const & value){
+    std::stringstream ss;
+    ss << value;
+    return ss.str();
+}
+
+void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
+    std::string key, value;
+    int eqPos;
+    std::string argument;
+
+    for (int i = 1; i < argc; ++i) {
+        argument = argv[i];
+        eqPos = argument.find("=");
+        key = argument.substr(1, eqPos-1);
+        value = argument.substr(eqPos+1);
+
+        if (key == "L")
+            cfg.L = atoi(value.c_str());
+        else if (key == "N1")
+            cfg.n1 = atoi(value.c_str());
+        else if (key == "N2")
+            cfg.n2 = atoi(value.c_str());
+        else if (key == "N3")
+            cfg.n3 = atoi(value.c_str());
+        else if (key == "threads")
+            cfg.threadCount = atoi(value.c_str());
+        else if (key == "J")
+            cfg.J = atof(value.c_str());
+        else if (key == "alg1")
+            cfg.alg1 = (value == "metro") ? 0 : 1;
+        else if (key == "alg2")
+            cfg.alg2 = (value == "metro") ? 0 : 1;
+        else if (key == "record")
+            cfg.recordMain = value == "main";
+        else if (key == "en")
+            labCfg.fileEnergy = value;
+        else if (key == "mag")
+            labCfg.fileMag = value;
+        else if (key == "cv")
+            labCfg.fileCv = value;
+        else if (key == "chi")
+            labCfg.fileChi = value;
+        else if (key == "states")
+            labCfg.fileStates = value;
+        else if (key == "TSteps")
+            labCfg.TSteps = atoi(value.c_str());
+        else if (key == "TMin")
+            labCfg.TMin = atof(value.c_str());
+        else if (key == "TMax")
+            labCfg.TMax = atof(value.c_str());
+        else
+            std::cerr << "Unknown parameter: " << argument << std::endl;
+    }
+}
+
 int main(int argc, char* argv[]){
-	unsigned int TSteps=10;
-	double TMin=0.1, TMax=4.53;
-	Config cfg;
+    if (argc < 2) {
+        std::cerr << "Too few arguments. See documentation." << std::endl;
+        return 1;
+    }
 
-	if (argc < 2) {
-		std::cerr << "Too few arguments. See documentation." << std::endl;
-		return 1;
-	}
+    Config cfg;
+    LabConfig labCfg;
+    checkParam(argc, argv, cfg, labCfg);
+    omp_set_num_threads(cfg.threadCount);
 
-	std::string arg, param;
-	for (int i = 1; i < argc; ++i) {
-		arg = argv[i];
-
-		param = "-L=";
-		if(arg.compare(0, param.length(), param) == 0)
-			cfg.L = atoi(arg.substr(param.length()).c_str());
-
-		param = "-N2=";
-		if(arg.compare(0, param.length(), param) == 0)
-			cfg.n2 = atoi(arg.substr(param.length()).c_str());
-
-		param = "-N3=";
-		if(arg.compare(0, param.length(), param) == 0)
-			cfg.n3 = atoi(arg.substr(param.length()).c_str());
-
-		param = "-threads=";
-		if(arg.compare(0, param.length(), param) == 0)
-			cfg.threadCount = atoi(arg.substr(param.length()).c_str());
-		omp_set_num_threads(cfg.threadCount);
-
-		param = "-J=";
-		if(arg.compare(0, param.length(), param) == 0)
-			cfg.J = atof(arg.substr(param.length()).c_str());
-
-        param = "-alg1=";
-        if(arg.compare(0, param.length(), param) == 0)
-            cfg.alg1 = (arg.substr(param.length())=="metro") ? 0 : 1;
-
-		param = "-alg2=";
-		if(arg.compare(0, param.length(), param) == 0)
-			cfg.alg2 = (arg.substr(param.length())=="metro") ? 0 : 1;
-
-		param = "-en=";
-		if(arg.compare(0, param.length(), param) == 0)
-			cfg.fileEnergy = arg.substr(param.length());
-
-        param = "-mag=";
-        if(arg.compare(0, param.length(), param) == 0)
-            cfg.fileMag = arg.substr(param.length());
-
-        param = "-cv=";
-        if(arg.compare(0, param.length(), param) == 0)
-            cfg.fileCv = arg.substr(param.length());
-
-        param = "-chi=";
-        if(arg.compare(0, param.length(), param) == 0)
-            cfg.fileChi = arg.substr(param.length());
-
-		// Temperatures
-		param = "-TSteps=";
-		if(arg.compare(0, param.length(), param) == 0)
-			TSteps = atoi(arg.substr(param.length()).c_str());
-
-		param = "-TMin=";
-		if(arg.compare(0, param.length(), param) == 0)
-			TMin = atof(arg.substr(param.length()).c_str());
-
-		param = "-TMax=";
-		if(arg.compare(0, param.length(), param) == 0)
-			TMax = atof(arg.substr(param.length()).c_str());
-	}
-	auto temps = getTemps(TMin, TMax, TSteps);
+	auto temps = getTemps(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
     std::vector<System> systems;
     for(double T : temps){
 		cfg.T = T;
-        systems.push_back(System(cfg));
+        systems.push_back(System(cfg, labCfg));
     }
 
-    std::string progressStr = std::string(TSteps, '.');
+    std::string progressStr = std::string(labCfg.TSteps, '.');
     std::cout << progressStr.c_str() << std::endl;
     #pragma omp parallel for
     for(unsigned int i=0; i<systems.size(); ++i){
@@ -173,9 +130,10 @@ int main(int argc, char* argv[]){
         std::cout << ".";
     }
 
-    std::vector<std::string> filenames = {cfg.fileEnergy, cfg.fileMag, cfg.fileCv, cfg.fileChi};
+    std::vector<std::string> filenames = {labCfg.fileEnergy, labCfg.fileMag, labCfg.fileCv, labCfg.fileChi};
     std::ofstream fileOut;
-    for(unsigned int i=0; i<4; ++i){
+
+    for(unsigned int i=0; i<filenames.size(); ++i){
         if(! filenames[i].empty()){
             fileOut.open(filenames[i]+".txt");
             for (auto& sys : systems)
@@ -184,17 +142,14 @@ int main(int argc, char* argv[]){
         }
     }
 
-
-
-//	if(measureStr == "states"){
-//		auto T_vec = getTemps(TMin, TMax, TSteps);
-//		for(int i=0; i<T_vec.size(); ++i)
-//			writeEndState(L, T_vec[i], filename+to_string(i)+".txt");
-//	}
-//	else if(measureStr == "movie"){
-//		writeMovie(L, TMin, filename+".txt", frameCount, algFP, algReps);
-//	}
-//	else
+    if(!labCfg.fileStates.empty()){
+        for (int i=0; i<systems.size(); ++i){
+            fileOut.open(labCfg.fileStates+to_string2(i)+".txt");
+            for(int j=0; j<systems[i].resultsStates.size(); ++j)
+                fileOut << systems[i].resultsStates[j] << std::endl;
+            fileOut.close();
+        }
+    }
 
 	return 0;
 }

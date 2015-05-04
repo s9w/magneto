@@ -19,12 +19,11 @@ The **grid size** can be set with `-L=32`, the coupling constant J with `-J=1.0`
 
 The **temperatures** can be controlled with the three parameters `-TMin=0.1 -TMax=4.53 -TSteps=10`. The odd default `Tmax` value corresponds to twice the critical temperature. The interval is divided into `TSteps` steps. Only the min and max temperature would be calculated with `TSteps=2`. Note that start and endpoint are included! It's equivalent to NumPy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
 
-The **initial state** can be set with `-initial=random`. Valid parameters are `random`, `uniform` (all +1), `neel` (antiferromagnetic or "checkerboard") or a filename. If a filename is given, that configuration is loaded. Important: set the grid length first (`-L=50`)! The format is expected to be simple 1 and 0 with no delimiters. Example:
+The **initial state** can be set with `-initial=random`. Valid parameters are `random`, `uniform` (all +1), `neel` (antiferromagnetic or "checkerboard") or a filename. If a filename is given, that configuration is loaded. Important: set the grid length first (`-L=50`)! The format is expected to be ones and zeros with comma seperation. Example:
 
-    1010
-    0100
-    1011
-    1010
+    1,0,1
+    0,1,0
+    1,0,1
 
 The algorithm to use in the **equilibration phase** can be set with `-alg1=metro`. Valid parameters are `metro` (Metropolis) and `sw` (Swendsen-Wang). The number of times that algorithm is run during equilibration can be controlled with `-N1=50`.
 
@@ -41,13 +40,10 @@ Heat capacity and magnetic susceptibility can be recorded with `-cv=filename` an
 
 Additionally, system states can be written with `-states=filename`. The output is handled slightly different: A file is written for every temperature like `filename0000.txt`, `filename0001.txt` and so on. In the `-record=end` mode, the file format is like the initial state format:
 
-    1010
-    0100
-    1011
-    1010
+    1,0,1
+    0,1,0
+    1,0,1
 
 With `-record=main`, the different states are written directly under each other. **Example**: Computation is started with `ising -TMin=2.5 -TSteps=1 -L=80 -measure=states -o=states`. To plot with matplotlib: `plt.imshow(np.loadtxt("states0.txt",  delimiter=","), cmap=plt.cm.Greys, interpolation ="none")`. Result:
 
 ![Example state](http://i.imgur.com/xXkFltH.png)
-
-todo: correlation length
