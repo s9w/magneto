@@ -18,7 +18,7 @@ struct LabConfig{
 	double TMin=0.1, TMax=4.53;
 	bool normalDist = false;
 	unsigned int TSteps;
-	std::string fileEnergy = "", fileMag="", fileCv="", fileChi="", fileStates="";
+	std::string fileEnergy = "", fileMag="", fileCv="", fileChi="", fileCorr="", fileStates="";
 };
 
 #endif //ICING_CONFIG_H

@@ -104,6 +104,8 @@ void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
             labCfg.fileCv = value;
         else if (key == "chi")
             labCfg.fileChi = value;
+        else if (key == "corr")
+            labCfg.fileCorr = value;
         else if (key == "states")
             labCfg.fileStates = value;
         else if (key == "TSteps")
@@ -147,7 +149,7 @@ int main(int argc, char* argv[]){
         std::cout << ".";
     }
 
-    std::vector<std::string> filenames = {labCfg.fileEnergy, labCfg.fileMag, labCfg.fileCv, labCfg.fileChi};
+    std::vector<std::string> filenames = {labCfg.fileEnergy, labCfg.fileMag, labCfg.fileCv, labCfg.fileChi, labCfg.fileCorr};
     std::ofstream fileOut;
 
     for(unsigned int i=0; i<filenames.size(); ++i){

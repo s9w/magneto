@@ -21,6 +21,12 @@ System::System(Config p_cfg, LabConfig& labCfg) {
         calc_cv = true;
     if(!labCfg.fileChi.empty())
         calc_chi = true;
+    if(!labCfg.fileCorr.empty()) {
+        calc_corr = true;
+        corr_ab.assign(cfg.L/2-1, 0.0);
+        corr_a.assign(cfg.L/2-1, 0.0);
+        corr_b.assign(cfg.L/2-1, 0.0);
+    }
     if(!labCfg.fileStates.empty())
         calc_states = true;
     grid = getRelaxedSys(cfg.L, cfg.T, cfg.J, cfg.n1, cfg.alg1);
@@ -65,6 +71,19 @@ void System::recordResults() {
         results[3] += to_string(tempResult);
     }
 
+    if (calc_corr) {
+        for (int d = 0; d < cfg.L/2-1; d++) {
+            corr_ab[d] = corr_ab[d]/cfg.n2;
+            corr_a[d] = corr_a[d]/cfg.n2;
+            corr_b[d] = corr_b[d]/cfg.n2;
+        }
+        tempResult = 0.0;
+        for(int i=0; i<cfg.L/2-1; ++i)
+            tempResult += corr_ab[i] - corr_a[i] * corr_b[i];
+        tempResult = tempResult/cfg.T;
+        results[4] += to_string(tempResult);
+    }
+
     if (calc_states) {
         unsigned int L = grid.size();
         for (int i = 0; i < L; ++i) {
@@ -91,5 +110,12 @@ void System::measure() {
         m_avg += mag;
         if(calc_chi)
             m2_avg += mag*mag;
+    }
+    if (calc_corr){
+        for (int d = 0; d < cfg.L/2-1; d++) {
+            corr_ab[d] += grid[0][0] * grid[0][d];
+            corr_a[d] += grid[0][0];
+            corr_b[d] += grid[0][d];
+        }
     }
 }

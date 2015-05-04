@@ -31,35 +31,6 @@ double calc_m_abs(std::vector<std::vector<int> >& grid) {
 }
 
 
-double corr_len(std::vector<std::vector<int> >& grid, double T, int avg_n, int evolveRuns,
-                const std::function<void(std::vector<std::vector<int> >&, double, int)> &evolve){
-    unsigned int L = grid.size();
-    unsigned int corr_range = L/2-1;
-    std::vector<double> corr_ab(corr_range, 0);
-    std::vector<double> corr_a(corr_range, 0);
-    std::vector<double> corr_b(corr_range, 0);
-    for(int i=0; i<avg_n; ++i) {
-        for (int d = 0; d < corr_range; d++) {
-            corr_ab[d] += grid[0][0] * grid[0][d];
-            corr_a[d] += grid[0][0];
-            corr_b[d] += grid[0][d];
-        }
-        evolve(grid, T, evolveRuns);
-    }
-
-    for (int d = 0; d < corr_range; d++) {
-        corr_ab[d] = corr_ab[d]/avg_n;
-        corr_a[d] = corr_a[d]/avg_n;
-        corr_b[d] = corr_b[d]/avg_n;
-    }
-
-    double corr_len = 0.0;
-    for(int i=0; i<corr_range; ++i)
-        corr_len += corr_ab[i] - corr_a[i] * corr_b[i];
-    return corr_len/T;
-}
-
-
 double avg_Z(std::vector<std::vector<int> >& grid, double T, int avg_n, int evolveRuns,
              const std::function<void(std::vector<std::vector<int> >&, double, int)> &evolve) {
     unsigned int L = grid.size();
