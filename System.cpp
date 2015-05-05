@@ -2,7 +2,7 @@
 #include "algs.h"
 #include "physics.h"
 
-std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, double J, unsigned int n1, int alg, int seedOffset=0);
+std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, double J, unsigned int n1, std::string alg, int seedOffset=0);
 
 template<typename T>
 std::string to_string(T const & value) {
@@ -44,10 +44,12 @@ void System::compute() {
             recordResults();
 
         //  evolve
-        if (cfg.alg2 == 0)
+        if (cfg.alg2 == "metro")
+            metropolis_sweeps(grid, cfg.T, cfg.n3, cfg.J);
+        else if(cfg.alg2=="sw")
             wangRepeats(grid, cfg.T, cfg.n3, cfg.J);
         else
-            metropolis_sweeps(grid, cfg.T, cfg.n3, cfg.J);
+            std::cerr << "unknown alg!" << std::endl;
     }
     recordResults();
 }
@@ -67,7 +69,7 @@ void System::recordResults() {
     }
 
     if (calc_chi) {
-        tempResult = 1.0*(m2_avg / cfg.n2 - m_avg / cfg.n2* m_avg / cfg.n2) * cfg.L* cfg.L / (cfg.T* cfg.T);
+        tempResult = 1.0*(m2_avg / cfg.n2 - m_avg / cfg.n2* m_avg / cfg.n2) * cfg.L* cfg.L / cfg.T;
         results[3] += to_string(tempResult);
     }
 

@@ -10,7 +10,7 @@
 struct Config{
 	unsigned int n1=50, n2=500, n3=5, L=30, threadCount=3;
 	double J = 1.0, T=0.0;
-    int alg1=0, alg2=1;
+    std::string alg1="sw", alg2="metro";
 	bool recordMain = false;
 };
 

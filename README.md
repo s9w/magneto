@@ -19,7 +19,7 @@ The **grid size** can be set with `-L=32`, the coupling constant J with `-J=1.0`
 
 The **temperatures** can be controlled with the three parameters `-TMin=0.1 -TMax=4.53 -TSteps=10`. The odd default `Tmax` value corresponds to twice the critical temperature. The interval is divided into `TSteps` steps. Only the min and max temperature would be calculated with `TSteps=2`. Note that start and endpoint are included! It's equivalent to NumPy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
 
-Besides the default uniform distribution of temperatures, they can also be generated with a normal distribution around the critical temperature. That helps to concentrate the computation around the interesting point. Use with `-dist=normal`. Minimum and maximum temperatures are always included, the space between is filled with a normal distribution with sigma=0.9.
+Besides the default uniform distribution of temperatures, they can also be generated with a normal distribution around the critical temperature. That helps to concentrate the computation around the interesting point. Use with `-dist=normal`. Minimum and maximum temperatures are always included, the space between is filled with a normal distribution with sigma=1.0.
 
 The **initial state** can be set with `-initial=random`. Valid parameters are `random`, `uniform` (all +1), `neel` (antiferromagnetic or "checkerboard") or a filename. If a filename is given, that configuration is loaded. Important: set the grid length first (`-L=50`)! The format is expected to be ones and zeros with comma seperation. Example:
 

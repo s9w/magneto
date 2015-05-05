@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include <vector>
 #include <random>
 #include <fstream>
@@ -25,12 +26,14 @@ std::vector<std::vector<int> > genRandomSystem(const unsigned int L, int seedOff
 }
 
 
-std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, double J, unsigned int n1, int alg, int seedOffset=0) {
+std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, double J, unsigned int n1, std::string alg, int seedOffset=0) {
     auto grid = genRandomSystem(L, seedOffset);
-    if(alg==0)
+    if(alg=="metro")
+        metropolis_sweeps(grid, T, n1, J);
+    else if(alg=="sw")
         wangRepeats(grid, T, n1, J);
     else
-        metropolis_sweeps(grid, T, n1, J);
+        std::cerr << "unknown alg!" << std::endl;
     return grid;
 }
 
@@ -45,12 +48,25 @@ std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
     return T_vec;
 }
 
+double area(double TMin, double TMax, double mu, double sigma){
+    return 0.5*(boost::math::erf((TMax-mu)/(sigma*sqrt(2.0)))-boost::math::erf((TMin-mu)/(sigma*sqrt(2.0))));
+}
+
+double areaCumul(double T, double mu, double sigma){
+    return 0.5*(1.0+boost::math::erf((T-mu)/(sigma*sqrt(2.0))));
+}
+
 std::vector<double> getTempsNormal(double TMin, double TMax, unsigned int TSteps){
+    double mu=2.269, sigma=1.0;
     std::vector<double> T_vec;
     T_vec.push_back(TMin);
-    double mu=2.269, sigma=0.9;
-    for(int i=1; i<TSteps-1; ++i)
-        T_vec.push_back(sqrt(2)*sigma*boost::math::erf_inv( 2.0/(TSteps-1)*i-1 )+mu);
+    double F;
+    double area_middle = area(TMin, TMax, mu,sigma);
+    double area_TMin = areaCumul(TMin, mu, sigma);
+    for(int i=1; i<TSteps-1; ++i) {
+        F = i*area_middle/(TSteps-1) + area_TMin;
+        T_vec.push_back(sqrt(2.0) * sigma * boost::math::erf_inv(F*2.0-1.0) + mu);
+    }
     T_vec.push_back(TMax);
     return T_vec;
 }
@@ -89,9 +105,9 @@ void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
         else if (key == "J")
             cfg.J = atof(value.c_str());
         else if (key == "alg1")
-            cfg.alg1 = (value == "metro") ? 0 : 1;
+            cfg.alg1 = value;
         else if (key == "alg2")
-            cfg.alg2 = (value == "metro") ? 0 : 1;
+            cfg.alg2 = value;
         else if (key == "record")
             cfg.recordMain = value == "main";
         else if (key == "dist")
@@ -143,11 +159,13 @@ int main(int argc, char* argv[]){
 
     std::string progressStr = std::string(labCfg.TSteps, '.');
     std::cout << progressStr.c_str() << std::endl;
+    auto t0 = std::chrono::high_resolution_clock::now();
     #pragma omp parallel for
     for(unsigned int i=0; i<systems.size(); ++i){
         systems[i].compute();
         std::cout << ".";
     }
+    std::cout << std::endl;
 
     std::vector<std::string> filenames = {labCfg.fileEnergy, labCfg.fileMag, labCfg.fileCv, labCfg.fileChi, labCfg.fileCorr};
     std::ofstream fileOut;
@@ -169,6 +187,10 @@ int main(int argc, char* argv[]){
             fileOut.close();
         }
     }
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    float secs = (std::chrono::duration_cast <std::chrono::milliseconds > (t1-t0).count())*0.001f;
+    std::cout << "runtime: " << secs << "s" << std::endl;
 
 	return 0;
 }
