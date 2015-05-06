@@ -6,7 +6,7 @@
 #include <sstream>
 #include <omp.h>
 #include <boost/math/special_functions/erf.hpp>
-
+#include <boost/math/distributions/normal.hpp>
 #include "physics.h"
 #include "algs.h"
 #include "System.h"
@@ -48,27 +48,19 @@ std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
     return T_vec;
 }
 
-double area(double TMin, double TMax, double mu, double sigma){
-    return 0.5*(boost::math::erf((TMax-mu)/(sigma*sqrt(2.0)))-boost::math::erf((TMin-mu)/(sigma*sqrt(2.0))));
-}
-
-double areaCumul(double T, double mu, double sigma){
-    return 0.5*(1.0+boost::math::erf((T-mu)/(sigma*sqrt(2.0))));
-}
-
-std::vector<double> getTempsNormal(double TMin, double TMax, unsigned int TSteps){
-    double mu=2.269, sigma=1.0;
-    std::vector<double> T_vec;
-    T_vec.push_back(TMin);
-    double F;
-    double area_middle = area(TMin, TMax, mu,sigma);
-    double area_TMin = areaCumul(TMin, mu, sigma);
-    for(int i=1; i<TSteps-1; ++i) {
-        F = i*area_middle/(TSteps-1) + area_TMin;
-        T_vec.push_back(sqrt(2.0) * sigma * boost::math::erf_inv(F*2.0-1.0) + mu);
+std::vector<double> normalSpace(double x_min, double x_max, unsigned int N, double mu, double sigma){
+    boost::math::normal normal_dist(mu, sigma);
+    double area_min = boost::math::cdf(normal_dist, x_min);
+    double area_max = boost::math::cdf(normal_dist, x_max);
+    double A = area_max - area_min;
+    double A0 = A/(N-1.0);
+    double area;
+    std::vector<double> x;
+    for(int i=0; i<N; ++i) {
+        area = i*A0 + area_min;
+        x.push_back(sqrt(2.0)*sigma*boost::math::erf_inv(area*2.0 - 1.0) + mu);
     }
-    T_vec.push_back(TMax);
-    return T_vec;
+    return x;
 }
 
 template<typename T>
@@ -148,7 +140,7 @@ int main(int argc, char* argv[]){
 
     std::vector<double> temps;
     if(labCfg.normalDist)
-        temps = getTempsNormal(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
+        temps = normalSpace(labCfg.TMin, labCfg.TMax, labCfg.TSteps, 2.269, 1.0);
     else
 	    temps = getTemps(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
     std::vector<System> systems;
