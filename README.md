@@ -1,20 +1,19 @@
-# ising2d
+# magneto
 
 A fast parallel C++ program for various computations of the 2D [Ising model](http://en.wikipedia.org/wiki/Ising_model). Example uses:
 
 ```
-ising -L=30 -TMax=6 -TSteps=10 -en=energy -mag=magnetization
+magneto -L=30 -TMax=6 -TSteps=10 -en=energy -mag=magnetization
 ```
 
-OpenMP is used for the parallel work as well as some parts of C++11. Also boost was needed for the inverse error function.
+For much more examples and things you can do with it, see the **[IPython Notebook](http://nbviewer.ipython.org/github/s9w/magneto/blob/master/usage.ipynb)**.
+
+Needs C++11, OpenMP and boost for compilation with `make`.
 
 ## Motivation
 There is already a lot of Ising code out there, but most are sub-optimal for various reasons. Among those are slow performance, unreadable code, nonexistant documentation, missing normalization of the physics or missing observables. I hope this program does slightly better.
 
 ## Usage
-For a fixed grid size, all calculations are done for a range of different temperatures. All relevant details of the simulation as well as the measurements can be controlled. Also see the **[IPython Notebook](http://nbviewer.ipython.org/github/s9w/ising2d/blob/master/usage.ipynb)** for examples.
-
-## System parameters
 The **grid size** can be set with `-L=32`, the coupling constant J with `-J=1.0`, and the number of threads with `-threads=3`.
 
 The **temperatures** can be controlled with the three parameters `-TMin=0.1 -TMax=4.53 -TSteps=10`. The odd default `Tmax` value corresponds to twice the critical temperature. The interval is divided into `TSteps` steps. Only the min and max temperature would be calculated with `TSteps=2`. Note that start and endpoint are included! It's equivalent to NumPy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
@@ -46,6 +45,6 @@ Additionally, system states can be written with `-states=filename`. The output i
     0,1,0
     1,0,1
 
-With `-record=main`, the different states are written directly under each other. **Example**: Computation is started with `ising -TMin=2.5 -TSteps=1 -L=80 -measure=states -o=states`. To plot with matplotlib: `plt.imshow(np.loadtxt("states0.txt",  delimiter=","), cmap=plt.cm.Greys, interpolation ="none")`. Result:
+With `-record=main`, the different states are written directly under each other. **Example**: Computation is started with `magneto -TMin=2.5 -TSteps=1 -L=80 -measure=states -o=states`. To plot with matplotlib: `plt.imshow(np.loadtxt("states0.txt",  delimiter=","), cmap=plt.cm.Greys, interpolation ="none")`. Result:
 
 ![Example state](http://i.imgur.com/xXkFltH.png)
