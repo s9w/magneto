@@ -7,7 +7,7 @@
 
 
 
-void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n, double J) {
+void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n, int J) {
     double beta = 1.0f/T;
     unsigned int L = grid.size();
     long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
@@ -16,7 +16,7 @@ void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n, do
     std::uniform_real_distribution <double > dist_one(0.0, 1.0);
 
     int flipIdx1, flipIdx2;
-    double dE;
+    int dE;
     for (int i = 0; i < L*L*n; ++i){
         flipIdx1 = dist_grid(generator);
         flipIdx2 = dist_grid(generator);

@@ -26,7 +26,7 @@ std::vector<std::vector<int> > genRandomSystem(const unsigned int L, int seedOff
 }
 
 
-std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, double J, unsigned int n1, std::string alg, int seedOffset=0) {
+std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, int J, unsigned int n1, std::string alg, int seedOffset=0) {
     auto grid = genRandomSystem(L, seedOffset);
     if(alg=="metro")
         metropolis_sweeps(grid, T, n1, J);
@@ -95,7 +95,7 @@ void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
         else if (key == "threads")
             cfg.threadCount = atoi(value.c_str());
         else if (key == "J")
-            cfg.J = atof(value.c_str());
+            cfg.J = atoi(value.c_str());
         else if (key == "alg1")
             cfg.alg1 = value;
         else if (key == "alg2")

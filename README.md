@@ -14,7 +14,7 @@ Needs C++11, OpenMP and boost for compilation with `make`.
 There is already a lot of Ising code out there, but most are sub-optimal for various reasons. Among those are slow performance, unreadable code, nonexistant documentation, missing normalization of the physics or missing observables. I hope this program does slightly better.
 
 ## Usage
-The **grid size** can be set with `-L=32`, the coupling constant J with `-J=1.0`, and the number of threads with `-threads=3`.
+The **grid size** can be set with `-L=32`, the coupling constant J with `-J=1`, and the number of threads with `-threads=3`. For performance reasons, `J` is parsed and used as an integer! But usually it's 1 or -1 anyways.
 
 The **temperatures** can be controlled with the three parameters `-TMin=0.1 -TMax=4.53 -TSteps=10`. The odd default `Tmax` value corresponds to twice the critical temperature. The interval is divided into `TSteps` steps. Only the min and max temperature would be calculated with `TSteps=2`. Note that start and endpoint are included! It's equivalent to NumPy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
 

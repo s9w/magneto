@@ -2,7 +2,7 @@
 #include "algs.h"
 #include "physics.h"
 
-std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, double J, unsigned int n1, std::string alg, int seedOffset=0);
+std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, int J, unsigned int n1, std::string alg, int seedOffset=0);
 
 template<typename T>
 std::string to_string(T const & value) {
