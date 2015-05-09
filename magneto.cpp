@@ -12,32 +12,6 @@
 #include "System.h"
 
 
-std::vector<std::vector<int> > genRandomSystem(const unsigned int L, int seedOffset){
-	long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-	std::default_random_engine generator(seed1 + seedOffset);
-	std::uniform_int_distribution <int> dist(0,1);
-	std::vector<std::vector<int> > grid(L, std::vector<int>(L));
-	for (int i = 0; i < L; ++i){
-		for (int j = 0; j < L; ++j){
-			grid[i][j] = dist(generator)*2 - 1;
-		}
-	}
-	return grid;
-}
-
-
-std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, int J, unsigned int n1, std::string alg, int seedOffset=0) {
-    auto grid = genRandomSystem(L, seedOffset);
-    if(alg=="metro")
-        metropolis_sweeps(grid, T, n1, J);
-    else if(alg=="sw")
-        wangRepeats(grid, T, n1, J);
-    else
-        std::cerr << "unknown alg!" << std::endl;
-    return grid;
-}
-
-
 std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
     std::vector<double> T_vec;
     double dT = (TMax - TMin)/(TSteps-1);

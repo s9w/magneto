@@ -6,28 +6,6 @@
 #include "physics.h"
 
 
-
-void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n, int J) {
-    double beta = 1.0f/T;
-    unsigned int L = grid.size();
-    long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
-    std::mt19937 generator(seed1);
-    std::uniform_int_distribution <int> dist_grid(0,L-1);
-    std::uniform_real_distribution <double > dist_one(0.0, 1.0);
-
-    int flipIdx1, flipIdx2;
-    int dE;
-    for (int i = 0; i < L*L*n; ++i){
-        flipIdx1 = dist_grid(generator);
-        flipIdx2 = dist_grid(generator);
-        dE = J*calc_dE(grid, flipIdx1, flipIdx2, L);
-        if (dE <= 0 || (dist_one(generator)<exp(-dE*beta)) ){
-            grid[flipIdx1][flipIdx2] *= -1;
-        }
-    }
-}
-
-
 void wangRun(std::vector<std::vector<int> >& grid, double T, double J) {
     long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed1);

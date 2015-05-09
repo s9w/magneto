@@ -2,7 +2,6 @@
 #include "algs.h"
 #include "physics.h"
 
-std::vector<std::vector<int> > getRelaxedSys(const unsigned int L, const double T, int J, unsigned int n1, std::string alg, int seedOffset=0);
 
 template<typename T>
 std::string to_string(T const & value) {
@@ -12,6 +11,9 @@ std::string to_string(T const & value) {
 }
 
 System::System(Config p_cfg, LabConfig& labCfg) {
+    long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
+    gen_metro = std::mt19937(seed1);
+
     cfg = p_cfg;
     if(!labCfg.fileEnergy.empty())
         calc_e = true;
@@ -29,7 +31,53 @@ System::System(Config p_cfg, LabConfig& labCfg) {
     }
     if(!labCfg.fileStates.empty())
         calc_states = true;
-    grid = getRelaxedSys(cfg.L, cfg.T, cfg.J, cfg.n1, cfg.alg1);
+    grid = getRelaxedSys(0);
+}
+
+std::vector<std::vector<int> > System::genRandomSystem(int seedOffset){
+    unsigned int L = cfg.L;
+    long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator(seed1 + seedOffset);
+    std::uniform_int_distribution <int> dist(0,1);
+    std::vector<std::vector<int> > grid(L, std::vector<int>(L));
+    for (int i = 0; i < L; ++i){
+        for (int j = 0; j < L; ++j){
+            grid[i][j] = dist(generator)*2 - 1;
+        }
+    }
+    return grid;
+}
+
+std::vector<std::vector<int> > System::getRelaxedSys(int seedOffset) {
+    auto grid = genRandomSystem(seedOffset);
+    if(cfg.alg1=="metro")
+        metropolis_sweeps();
+    else if(cfg.alg1=="sw")
+        wangRepeats(grid, cfg.T, cfg.n1, cfg.J);
+    else
+        std::cerr << "unknown alg!" << std::endl;
+    return grid;
+}
+
+void System::metropolis_sweeps() {
+    double beta = 1.0f/cfg.T;
+    std::uniform_int_distribution <int> dist_grid(0, cfg.L -1);
+    std::uniform_real_distribution <double > dist_one(0.0, 1.0);
+
+    std::vector<double> exp_values;
+    int buffer_offset = 8*abs(cfg.J);
+    for(int dE=0; dE<(buffer_offset*2+1); ++dE)
+        exp_values.push_back(exp(-(dE-buffer_offset)*beta));
+
+    int flipIdx1, flipIdx2;
+    int dE;
+    for (int i=0; i < cfg.L*cfg.L*cfg.n3; ++i){
+        flipIdx1 = dist_grid(gen_metro);
+        flipIdx2 = dist_grid(gen_metro);
+        dE = cfg.J*calc_dE(grid, flipIdx1, flipIdx2, cfg.L);
+        if (dE <= 0 || (dist_one(gen_metro) < exp_values[dE+buffer_offset]) )
+            grid[flipIdx1][flipIdx2] *= -1;
+    }
 }
 
 void System::compute() {
@@ -45,7 +93,7 @@ void System::compute() {
 
         //  evolve
         if (cfg.alg2 == "metro")
-            metropolis_sweeps(grid, cfg.T, cfg.n3, cfg.J);
+            metropolis_sweeps();
         else if(cfg.alg2=="sw")
             wangRepeats(grid, cfg.T, cfg.n3, cfg.J);
         else

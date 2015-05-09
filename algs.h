@@ -16,7 +16,6 @@
 #include <deque>
 #include <iomanip>
 
-void metropolis_sweeps(std::vector<std::vector<int> >& grid, double T, int n, int J);
 void wangRun(std::vector<std::vector<int> >& grid, double T, double J);
 void wangRepeats(std::vector<std::vector<int> >& grid, double T, int n, double J);
 
