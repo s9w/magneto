@@ -16,6 +16,7 @@ private:
 	std::vector<std::vector<int> > getRelaxedSys(int seedOffsets);
 	void metropolis_sweeps();
 	std::mt19937 gen_metro;
+	std::vector<double> exp_values;
 
 	bool calc_e=false, calc_m=false, calc_cv=false, calc_chi=false, calc_states=false, calc_corr=false;
 	std::vector<std::vector<int> > grid;
