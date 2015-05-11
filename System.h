@@ -15,6 +15,7 @@ public:
 private:
 	std::vector<std::vector<int> > genRandomSystem(int seedOffset);
 	std::vector<std::vector<int> > getRelaxedSys(int seedOffsets);
+	std::vector<std::vector<int> > getFileState(std::string filename);
 	void metropolis_sweeps();
 	std::mt19937 gen_metro;
 	std::vector<double> exp_values;

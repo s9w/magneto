@@ -32,6 +32,8 @@ void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
             cfg.threadCount = atoi(value.c_str());
         else if (key == "J")
             cfg.J = atoi(value.c_str());
+        else if (key == "initial")
+            cfg.initial = value;
         else if (key == "alg1")
             cfg.alg1 = value;
         else if (key == "alg2")

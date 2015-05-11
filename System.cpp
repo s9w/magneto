@@ -2,6 +2,7 @@
 #include "System.h"
 #include "algs.h"
 #include "physics.h"
+#include <boost/algorithm/string.hpp>
 
 System::System(Config p_cfg, LabConfig& labCfg) {
     cfg = p_cfg;
@@ -46,8 +47,28 @@ std::vector<std::vector<int> > System::genRandomSystem(int seedOffset){
     return grid;
 }
 
+std::vector<std::vector<int> > System::getFileState(std::string filename){
+    unsigned int L = cfg.L;
+    std::ifstream fileIn(filename);
+    std::string line;
+    std::vector<std::string> strs;
+    std::vector<std::vector<int> > grid(L, std::vector<int>(L));
+    for (int i = 0; i < L; ++i){
+        std::getline(fileIn, line);
+        boost::split(strs, line, boost::is_any_of(","));
+        for (int j = 0; j < L; ++j){
+           grid[i][j] = strs[j]=="1"?1:-1;
+        }
+    }
+    return grid;
+}
+
 std::vector<std::vector<int> > System::getRelaxedSys(int seedOffset) {
-    grid = genRandomSystem(seedOffset);
+    if(cfg.initial=="random")
+        grid = genRandomSystem(seedOffset);
+    else
+        grid = getFileState(cfg.initial);
+
     if(cfg.alg1=="metro")
         metropolis_sweeps();
     else if(cfg.alg1=="sw")
@@ -87,7 +108,7 @@ void System::compute() {
         //  evolve
         if (cfg.alg2 == "metro")
             metropolis_sweeps();
-        else if(cfg.alg2=="sw")
+        else if(cfg.alg2 == "sw")
             wangRepeats(grid, cfg.T, cfg.n3, cfg.J);
         else
             std::cerr << "unknown alg!" << std::endl;
