@@ -47,7 +47,7 @@ std::vector<std::vector<int> > System::genRandomSystem(int seedOffset){
 }
 
 std::vector<std::vector<int> > System::getRelaxedSys(int seedOffset) {
-    auto grid = genRandomSystem(seedOffset);
+    grid = genRandomSystem(seedOffset);
     if(cfg.alg1=="metro")
         metropolis_sweeps();
     else if(cfg.alg1=="sw")
