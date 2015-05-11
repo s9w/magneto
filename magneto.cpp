@@ -5,37 +5,9 @@
 #include <fstream>
 #include <sstream>
 #include <omp.h>
-#include <boost/math/special_functions/erf.hpp>
-#include <boost/math/distributions/normal.hpp>
 #include "physics.h"
-#include "algs.h"
 #include "System.h"
-
-
-std::vector<double> getTemps(double TMin, double TMax, unsigned int TSteps){
-    std::vector<double> T_vec;
-    double dT = (TMax - TMin)/(TSteps-1);
-    if(TSteps==1)
-        dT=0;
-    for(int i=0; i<TSteps; ++i)
-        T_vec.push_back(TMin + i*dT);
-    return T_vec;
-}
-
-std::vector<double> normalSpace(double x_min, double x_max, unsigned int N, double mu, double sigma){
-    boost::math::normal normal_dist(mu, sigma);
-    double area_min = boost::math::cdf(normal_dist, x_min);
-    double area_max = boost::math::cdf(normal_dist, x_max);
-    double A = area_max - area_min;
-    double A0 = A/(N-1.0);
-    double area;
-    std::vector<double> x;
-    for(int i=0; i<N; ++i) {
-        area = i*A0 + area_min;
-        x.push_back(sqrt(2.0)*sigma*boost::math::erf_inv(area*2.0 - 1.0) + mu);
-    }
-    return x;
-}
+#include "helpers.h"
 
 template<typename T>
 std::string to_string(T const & value);
@@ -116,7 +88,7 @@ int main(int argc, char* argv[]){
     if(labCfg.normalDist)
         temps = normalSpace(labCfg.TMin, labCfg.TMax, labCfg.TSteps, 2.269, 1.0);
     else
-	    temps = getTemps(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
+	    temps = linspace(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
     std::vector<System> systems;
     for(double T : temps){
 		cfg.T = T;
