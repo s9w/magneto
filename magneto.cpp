@@ -9,16 +9,6 @@
 #include "System.h"
 #include "helpers.h"
 
-template<typename T>
-std::string to_string(T const & value);
-
-template <typename T>
-std::string to_string2(T const & value){
-    std::stringstream ss;
-    ss << value;
-    return ss.str();
-}
-
 void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
     std::string key, value;
     int eqPos;
@@ -119,7 +109,7 @@ int main(int argc, char* argv[]){
 
     if(!labCfg.fileStates.empty()){
         for (int i=0; i<systems.size(); ++i){
-            fileOut.open(labCfg.fileStates+to_string2(i)+".txt");
+            fileOut.open(labCfg.fileStates+to_string(i)+".txt");
             for(int j=0; j<systems[i].resultsStates.size(); ++j)
                 fileOut << systems[i].resultsStates[j] << std::endl;
             fileOut.close();

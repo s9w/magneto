@@ -2,6 +2,7 @@
 #include <vector>
 #include <random>
 #include "Config.h"
+#include "helpers.h"
 
 class System{
 public:

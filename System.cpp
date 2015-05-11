@@ -1,14 +1,7 @@
+#include <sstream>
 #include "System.h"
 #include "algs.h"
 #include "physics.h"
-
-
-template<typename T>
-std::string to_string(T const & value) {
-    std::stringstream ss;
-    ss << value;
-    return ss.str();
-}
 
 System::System(Config p_cfg, LabConfig& labCfg) {
     cfg = p_cfg;
