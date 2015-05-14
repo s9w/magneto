@@ -16,7 +16,7 @@ There is already a lot of Ising code out there, but most are sub-optimal for var
 ## Usage
 The **grid size** can be set with `-L=32`, the coupling constant J with `-J=1`, and the number of threads with `-threads=3`. For performance reasons, `J` is parsed and used as an integer! But usually it's 1 or -1 anyways.
 
-The **temperatures** can be controlled with the three parameters `-TMin=0.1 -TMax=4.53 -TSteps=10`. The odd default `Tmax` value corresponds to twice the critical temperature. The interval is divided into `TSteps` steps. Only the min and max temperature would be calculated with `TSteps=2`. Note that start and endpoint are included! It's equivalent to NumPy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
+The **temperatures** can be controlled with the three parameters `-TMin=0.1 -TMax=4.53 -TSteps=9`. The odd default `Tmax` value corresponds to twice the critical temperature. The interval is divided into `TSteps` steps. Only the min and max temperature would be calculated with `TSteps=2`. Note that start and endpoint are included! It's equivalent to NumPy's `np.linspace(0.0, 3.0, num=4, endpoint=True)`.
 
 Besides the default uniform distribution of temperatures, they can also be generated with a normal distribution around the critical temperature. That helps to concentrate the computation around the interesting point. Use with `-dist=normal`. Minimum and maximum temperatures are always included, the space between is filled with a normal distribution with sigma=1.0.
 
@@ -37,9 +37,11 @@ Every measurement is written into a separate file. On each line, the output file
 
 Energy and magnetization can be recorded with `-en=filename` and `-mag=filename` respectively. Those two are properties that can be measured on the system directly and are averaged during the main phase. With `-record=main`, the ith result is the average of all the previous measurements and therefore only the last value is averaged over `N2`. For the default `-record=end` setting, the result is just the average over the `N2` measurements.
 
-Heat capacity and magnetic susceptibility can be recorded with `-cv=filename` and `-chi=filename` respectively. They are measured from the variation in energy/magnetization (divided by the respective T and T^2 factors). 
+**Heat capacity** and **magnetic susceptibility** can be recorded with `-cv=filename` and `-chi=filename` respectively. They are measured from the variation in energy/magnetization (divided by the respective T and T^2 factors).
+ 
+ The **correlation function** can be recorded with `-corr=filename`. It's different in that it outputs not one, but L/2 values. They can be fitted externally to calculate the correlation length and the susceptibility from it. See the notebook for that.
 
-Additionally, system states can be written with `-states=filename`. The output is handled slightly different: A file is written for every temperature like `filename0000.txt`, `filename0001.txt` and so on. In the `-record=end` mode, the file format is like the initial state format:
+System states can be recorded with `-states=filename`. The output is handled slightly different: A file is written for every temperature like `filename0000.txt`, `filename0001.txt` and so on. In the `-record=end` mode, the file format is like the initial state format:
 
     1,0,1
     0,1,0

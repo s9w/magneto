@@ -43,17 +43,17 @@ void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
         else if (key == "dist")
             labCfg.normalDist = value == "normal";
         else if (key == "en")
-            labCfg.fileEnergy = value;
+            labCfg.output_filenames[energy] = value;
         else if (key == "mag")
-            labCfg.fileMag = value;
+            labCfg.output_filenames[mag] = value;
         else if (key == "cv")
-            labCfg.fileCv = value;
+            labCfg.output_filenames[cv] = value;
         else if (key == "chi")
-            labCfg.fileChi = value;
+            labCfg.output_filenames[chi] = value;
         else if (key == "corr")
-            labCfg.fileCorr = value;
+            labCfg.output_filenames[corrfun] = value;
         else if (key == "states")
-            labCfg.fileStates = value;
+            labCfg.output_filenames[states] = value;
         else if (key == "TSteps")
             labCfg.TSteps = atoi(value.c_str());
         else if (key == "TMin")
@@ -82,6 +82,7 @@ int main(int argc, char* argv[]){
     else
 	    temps = linspace(labCfg.TMin, labCfg.TMax, labCfg.TSteps);
     std::vector<System> systems;
+    auto t0 = std::chrono::high_resolution_clock::now();
     for(double T : temps){
 		cfg.T = T;
         systems.push_back(System(cfg, labCfg));
@@ -89,7 +90,7 @@ int main(int argc, char* argv[]){
 
     std::string progressStr = std::string(labCfg.TSteps, '.');
     std::cout << progressStr.c_str() << std::endl;
-    auto t0 = std::chrono::high_resolution_clock::now();
+
     #pragma omp parallel for
     for(unsigned int i=0; i<systems.size(); ++i){
         systems[i].compute();
@@ -97,24 +98,21 @@ int main(int argc, char* argv[]){
     }
     std::cout << std::endl;
 
-    std::vector<std::string> filenames = {labCfg.fileEnergy, labCfg.fileMag, labCfg.fileCv, labCfg.fileChi, labCfg.fileCorr};
-    std::ofstream fileOut;
 
-    for(unsigned int i=0; i<filenames.size(); ++i){
-        if(! filenames[i].empty()){
-            fileOut.open(filenames[i]+".txt");
+    std::ofstream fileOut;
+    for(unsigned int i=0; i<labCfg.output_filenames.size(); ++i){
+        if( ! labCfg.output_filenames[i].empty() && i!=states){
+            fileOut.open(labCfg.output_filenames[i]+".txt");
             for (auto& sys : systems)
-                fileOut << to_string(sys.cfg.T) << ", " << sys.results[i] << std::endl;
+                fileOut << to_string(sys.cfg.T) << sys.results[i] << std::endl;
             fileOut.close();
         }
-    }
-
-    if(!labCfg.fileStates.empty()){
-        for (int i=0; i<systems.size(); ++i){
-            fileOut.open(labCfg.fileStates+to_string(i)+".txt");
-            for(int j=0; j<systems[i].resultsStates.size(); ++j)
-                fileOut << systems[i].resultsStates[j] << std::endl;
-            fileOut.close();
+        if( ! labCfg.output_filenames[i].empty() && i==states){
+            for (int j=0; j<systems.size(); ++j){
+                fileOut.open(labCfg.output_filenames[i]+to_string(j)+".txt");
+                fileOut << systems[j].results[states] << std::endl;
+                fileOut.close();
+            }
         }
     }
 

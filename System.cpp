@@ -5,6 +5,7 @@
 #include <boost/algorithm/string.hpp>
 
 System::System(Config p_cfg, LabConfig& labCfg) {
+    results = std::vector<std::string>(6,"");
     cfg = p_cfg;
     long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
     gen_metro = std::mt19937(seed1);
@@ -14,28 +15,38 @@ System::System(Config p_cfg, LabConfig& labCfg) {
     for(int dE=0; dE<(buffer_offset*2+1); ++dE)
         exp_values.push_back(exp(-(dE-buffer_offset)*beta));
 
-    if(!labCfg.fileEnergy.empty())
-        calc_e = true;
-    if(!labCfg.fileMag.empty())
-        calc_m = true;
-    if(!labCfg.fileCv.empty())
-        calc_cv = true;
-    if(!labCfg.fileChi.empty())
-        calc_chi = true;
-    if(!labCfg.fileCorr.empty()) {
-        calc_corr = true;
-        corr_ab.assign(cfg.L/2-1, 0.0);
-        corr_a.assign(cfg.L/2-1, 0.0);
-        corr_b.assign(cfg.L/2-1, 0.0);
+    corr_count = 100;
+    corr_range = cfg.L/2;
+
+    std::default_random_engine generator(seed1);
+    std::uniform_int_distribution<unsigned int> dist(0, cfg.L-1);
+
+    for(int i=0; i< corr_count; ++i){
+        correlations.push_back(correlationPoint());
+        correlations.back().i = dist(generator);
+        correlations.back().j = dist(generator);
+        correlations.back().corr_a.assign(corr_range, 0.0);
+        correlations.back().corr_ab.assign(corr_range, 0.0);
     }
-    if(!labCfg.fileStates.empty())
+
+    if(!labCfg.output_filenames[energy].empty())
+        calc_e = true;
+    if(!labCfg.output_filenames[mag].empty())
+        calc_m = true;
+    if(!labCfg.output_filenames[cv].empty())
+        calc_cv = true;
+    if(!labCfg.output_filenames[chi].empty())
+        calc_chi = true;
+    if(!labCfg.output_filenames[corrfun].empty())
+        calc_corrfun = true;
+    if(!labCfg.output_filenames[states].empty())
         calc_states = true;
     grid = getRelaxedSys(0);
 }
 
 std::vector<std::vector<int> > System::genRandomSystem(int seedOffset){
     unsigned int L = cfg.L;
-    long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator(seed1 + seedOffset);
     std::uniform_int_distribution <int> dist(0,1);
     std::vector<std::vector<int> > grid(L, std::vector<int>(L));
@@ -70,7 +81,7 @@ std::vector<std::vector<int> > System::getRelaxedSys(int seedOffset) {
         grid = getFileState(cfg.initial);
 
     if(cfg.alg1=="metro")
-        metropolis_sweeps();
+        metropolis_sweeps(cfg.n1);
     else if(cfg.alg1=="sw")
         wangRepeats(grid, cfg.T, cfg.n1, cfg.J);
     else
@@ -78,14 +89,14 @@ std::vector<std::vector<int> > System::getRelaxedSys(int seedOffset) {
     return grid;
 }
 
-void System::metropolis_sweeps() {
+void System::metropolis_sweeps(unsigned int n) {
     std::uniform_int_distribution <int> dist_grid(0, cfg.L-1);
     std::uniform_real_distribution <double > dist_one(0.0, 1.0);
 
     int buffer_offset = 8*abs(cfg.J);
     int flipIdx1, flipIdx2;
     int dE;
-    for (int i=0; i < cfg.L*cfg.L*cfg.n3; ++i){
+    for (int i=0; i < cfg.L*cfg.L*n; ++i){
         flipIdx1 = dist_grid(gen_metro);
         flipIdx2 = dist_grid(gen_metro);
         dE = cfg.J * calc_dE(grid, flipIdx1, flipIdx2, cfg.L);
@@ -96,7 +107,7 @@ void System::metropolis_sweeps() {
 
 void System::compute() {
     if (calc_states)
-        resultsStates.push_back(to_string(cfg.T) + "\n");
+        results[states] += to_string(cfg.T) + "\n";
 
     for(int evolveStep=0; evolveStep<cfg.n2; ++evolveStep) {
         measure();
@@ -107,7 +118,7 @@ void System::compute() {
 
         //  evolve
         if (cfg.alg2 == "metro")
-            metropolis_sweeps();
+            metropolis_sweeps(cfg.n3);
         else if(cfg.alg2 == "sw")
             wangRepeats(grid, cfg.T, cfg.n3, cfg.J);
         else
@@ -118,37 +129,45 @@ void System::compute() {
 
 void System::recordResults() {
     double tempResult;
-    std::string str="";
     if (calc_e)
-        results[0] += to_string(e_avg / cfg.n2);
+        results[energy] += ", " + to_string(e_avg / cfg.n2);
 
     if (calc_m)
-        results[1] += to_string(m_avg / cfg.n2);
+        results[mag] += ", " + to_string(m_avg / cfg.n2);
 
     if (calc_cv) {
         tempResult = 1.0*(e2_avg / cfg.n2 - e_avg / cfg.n2* e_avg / cfg.n2) * cfg.L* cfg.L / (cfg.T* cfg.T);
-        results[2] += to_string(tempResult);
+        results[cv] += ", " + to_string(tempResult);
     }
 
     if (calc_chi) {
         tempResult = 1.0*(m2_avg / cfg.n2 - m_avg / cfg.n2* m_avg / cfg.n2) * cfg.L* cfg.L / cfg.T;
-        results[3] += to_string(tempResult);
+        results[chi] += ", " + to_string(tempResult);
     }
 
-    if (calc_corr) {
-        for (int d = 0; d < cfg.L/2-1; d++) {
-            corr_ab[d] = corr_ab[d]/cfg.n2;
-            corr_a[d] = corr_a[d]/cfg.n2;
-            corr_b[d] = corr_b[d]/cfg.n2;
+    if (calc_corrfun) {
+        const unsigned int d_limit = cfg.L/2;
+        std::vector<double> sigma_ij = std::vector<double>(d_limit, 0.0);
+        std::vector<double> sigma_i = std::vector<double>(d_limit, 0.0);
+        std::vector<double> sigma_j = std::vector<double>(d_limit, 0.0);
+        std::vector<double> G = std::vector<double>(d_limit, 0.0);
+
+        for(auto &corr : correlations){
+            for (int d = 0; d < corr_range; d++) {
+                sigma_ij[d] += corr.corr_ab[d];
+                sigma_i[d]  += corr.corr_a[0];
+                sigma_j[d]  += corr.corr_a[d];
+            }
         }
-        tempResult = 0.0;
-        for(int i=0; i<cfg.L/2-1; ++i)
-            tempResult += corr_ab[i] - corr_a[i] * corr_b[i];
-        tempResult = tempResult/cfg.T;
-        results[4] += to_string(tempResult);
+
+        for (int d = 0; d < d_limit; d++) {
+            G[d] = sigma_ij[d]/(cfg.n2* corr_count) - sigma_i[d]/(cfg.n2* corr_count)*sigma_j[d]/(cfg.n2*corr_count);
+            results[corrfun] += ", " + to_string(G[d]);
+        }
     }
 
     if (calc_states) {
+        std::string str="";
         unsigned int L = grid.size();
         for (int i = 0; i < L; ++i) {
             for (int j = 0; j < L; ++j) {
@@ -158,7 +177,7 @@ void System::recordResults() {
             }
             str += "\n";
         }
-        resultsStates.push_back(str);
+        results[states] += str+"\n";
     }
 }
 
@@ -175,11 +194,12 @@ void System::measure() {
         if(calc_chi)
             m2_avg += mag*mag;
     }
-    if (calc_corr){
-        for (int d = 0; d < cfg.L/2-1; d++) {
-            corr_ab[d] += grid[0][0] * grid[0][d];
-            corr_a[d] += grid[0][0];
-            corr_b[d] += grid[0][d];
+    if (calc_corrfun){
+        for(auto &corr : correlations){
+            for (int d = 0; d < corr_range; d++) {
+                corr.corr_a[d]  += grid[corr.i][(corr.j+d)%cfg.L];
+                corr.corr_ab[d] += grid[corr.i][corr.j] * grid[corr.i][(corr.j+d)%cfg.L];
+            }
         }
     }
 }
