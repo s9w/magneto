@@ -6,7 +6,7 @@ A fast parallel C++ program for various computations of the 2D [Ising model](htt
 magneto -L=30 -TMax=6 -TSteps=10 -en=energy -mag=magnetization
 ```
 
-For much more examples and things you can do with it, see the **[IPython Notebook](http://nbviewer.ipython.org/github/s9w/magneto/blob/master/usage.ipynb)**.
+For much more examples and things you can do with it, see the **[IPython Notebook](http://nbviewer.ipython.org/github/s9w/magneto/blob/master/physics.ipynb)**.
 
 Needs C++11, OpenMP and boost for compilation with `make`.
 
