@@ -15,7 +15,7 @@ System::System(Config p_cfg, LabConfig& labCfg) {
     for(int dE=0; dE<(buffer_offset*2+1); ++dE)
         exp_values.push_back(exp(-(dE-buffer_offset)*beta));
 
-    corr_count = 100;
+    corr_count = 500;
     corr_range = cfg.L/2;
 
     std::default_random_engine generator(seed1);

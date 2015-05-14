@@ -8,7 +8,7 @@
 #include <string>
 
 struct Config{
-	unsigned int n1=50, n2=500, n3=5, L=30, threadCount=3;
+	unsigned int n1=500, n2=500, n3=5, L=30, threadCount=3;
 	int J = 1;
 	double T=0.0;
     std::string alg1="metro", alg2="metro", initial="random";
