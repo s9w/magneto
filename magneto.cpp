@@ -121,7 +121,7 @@ int main(int argc, char* argv[]){
 
     // print runtime
     auto t1 = std::chrono::high_resolution_clock::now();
-    float secs = (std::chrono::duration_cast <std::chrono::milliseconds > (t1-t0).count())*0.001f;
+    double secs = (std::chrono::duration_cast <std::chrono::milliseconds > (t1-t0).count())*0.001;
     std::cout << "runtime: " << secs << "s" << std::endl;
 
 	return 0;

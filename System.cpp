@@ -3,27 +3,25 @@
 #include "physics.h"
 #include <boost/algorithm/string.hpp>
 
-System::System(Config p_cfg, LabConfig& labCfg) {
-    results = std::vector<std::string>(6, "");
-    cfg = p_cfg;
+System::System(Config& p_cfg, LabConfig& labCfg) :
+        cfg(p_cfg){
 
-    double beta = 1.0f/cfg.T;
+    // precalc exp values
     int buffer_offset = 8*abs(cfg.J);
     for(int dE=0; dE < buffer_offset*2+1; ++dE)
-        exp_values.push_back(exp(-(dE-buffer_offset)*beta));
+        exp_values.push_back(exp(-(dE-buffer_offset)/cfg.T));
 
+    results = std::vector<std::string>(6, "");
     corr_count = 500;
     corr_range = cfg.L/2;
-
     long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
-    gen_metro = std::mt19937(seed1);
-    std::default_random_engine generator(seed1);
+    rng = std::mt19937(seed1);
     std::uniform_int_distribution<unsigned int> dist_grid(0, cfg.L-1);
 
     for(int i=0; i< corr_count; ++i){
-        correlations.push_back(correlationPoint());
-        correlations.back().i = dist_grid(generator);
-        correlations.back().j = dist_grid(generator);
+        correlations.push_back(CorrelationPoint());
+        correlations.back().i = dist_grid(rng);
+        correlations.back().j = dist_grid(rng);
         correlations.back().corr_a.assign(corr_range, 0.0);
         correlations.back().corr_ab.assign(corr_range, 0.0);
     }
@@ -40,55 +38,56 @@ System::System(Config p_cfg, LabConfig& labCfg) {
         calc_corrfun = true;
     if(!labCfg.output_filenames[states].empty())
         calc_states = true;
+
     grid = getRelaxedSys(0);
 }
 
-std::vector<std::vector<int> > System::genRandomSystem(int seedOffset){
-    unsigned int L = cfg.L;
+grid_type System::genRandomSystem(int seedOffset){
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator(seed1 + seedOffset);
     std::uniform_int_distribution <int> dist(0,1);
-    std::vector<std::vector<int> > grid(L, std::vector<int>(L));
-    for (int i = 0; i < L; ++i){
-        for (int j = 0; j < L; ++j){
+    grid_type grid(cfg.L, std::vector<int>(cfg.L));
+    for (int i = 0; i < cfg.L; ++i){
+        for (int j = 0; j < cfg.L; ++j){
             grid[i][j] = dist(generator)*2 - 1;
         }
     }
     return grid;
 }
 
-std::vector<std::vector<int> > System::getFileState(std::string filename){
-    unsigned int L = cfg.L;
+grid_type System::getFileState(std::string filename){
     std::ifstream fileIn(filename);
     std::string line;
     std::vector<std::string> strs;
-    std::vector<std::vector<int> > grid(L, std::vector<int>(L));
-    for (int i = 0; i < L; ++i){
+    grid_type grid(cfg.L, std::vector<int>(cfg.L));
+    for (int i = 0; i < cfg.L; ++i){
         std::getline(fileIn, line);
         boost::split(strs, line, boost::is_any_of(","));
-        for (int j = 0; j < L; ++j){
+        for (int j = 0; j < cfg.L; ++j){
            grid[i][j] = strs[j]=="1"?1:-1;
         }
     }
     return grid;
 }
 
-std::vector<std::vector<int> > System::getRelaxedSys(int seedOffset) {
-    if(cfg.initial=="random")
-        grid = genRandomSystem(seedOffset);
+grid_type System::getRelaxedSys(int seedOffset) {
+    grid_type new_grid;
+    if(cfg.initial == "random")
+        new_grid = genRandomSystem(seedOffset);
     else
-        grid = getFileState(cfg.initial);
+        new_grid = getFileState(cfg.initial);
+    grid = new_grid;
 
     if(cfg.alg == "metro")
-        metropolis_sweeps(cfg.n1);
+        grid = metropolis_sweeps(grid, cfg.n1);
     else if(cfg.alg == "sw")
-        wangRuns(cfg.n1);
+        grid = wangRuns(grid, cfg.n1);
     else
         std::cerr << "unknown alg!" << std::endl;
     return grid;
 }
 
-void System::metropolis_sweeps(unsigned int n) {
+grid_type& System::metropolis_sweeps(grid_type& lattice, unsigned int n) {
     std::uniform_int_distribution <int> dist_grid(0, cfg.L-1);
     std::uniform_real_distribution <double > dist_one(0.0, 1.0);
 
@@ -96,21 +95,22 @@ void System::metropolis_sweeps(unsigned int n) {
     int flipIdx1, flipIdx2;
     int dE;
     for (int i=0; i < cfg.L*cfg.L*n; ++i){
-        flipIdx1 = dist_grid(gen_metro);
-        flipIdx2 = dist_grid(gen_metro);
-        dE = cfg.J * calc_dE(grid, flipIdx1, flipIdx2, cfg.L);
-        if (dE <= 0 || (dist_one(gen_metro) < exp_values[dE+buffer_offset]) )
-            grid[flipIdx1][flipIdx2] *= -1;
+        flipIdx1 = dist_grid(rng);
+        flipIdx2 = dist_grid(rng);
+        dE = cfg.J * calc_dE(lattice, flipIdx1, flipIdx2, cfg.L);
+        if (dE <= 0 || (dist_one(rng) < exp_values[dE+buffer_offset]) )
+            lattice[flipIdx1][flipIdx2] *= -1;
     }
+    return lattice;
 }
 
-void System::wangRuns(const unsigned int n) {
+grid_type& System::wangRuns(grid_type& lattice, const unsigned int n) {
     std::uniform_real_distribution<double> dist_one(0,1);
     const double freezeProbability = 1.0 - exp(-2.0f*cfg.J/cfg.T);
 
-    std::vector<std::vector<int> > discovered;
-    std::vector<std::vector<int> > doesBondNorth;
-    std::vector<std::vector<int> > doesBondEast;
+    grid_type discovered;
+    grid_type doesBondNorth;
+    grid_type doesBondEast;
 
     bool flipCluster;
     int x, y, nx, ny;
@@ -121,8 +121,8 @@ void System::wangRuns(const unsigned int n) {
 
         for (int i = 0; i < cfg.L; ++i) {
             for (int j = 0; j < cfg.L; ++j) {
-                doesBondNorth[i][j] = dist_one(gen_metro) < freezeProbability;
-                doesBondEast[i][j] = dist_one(gen_metro) < freezeProbability;
+                doesBondNorth[i][j] = dist_one(rng) < freezeProbability;
+                doesBondEast[i][j] = dist_one(rng) < freezeProbability;
             }
         }
 
@@ -130,7 +130,7 @@ void System::wangRuns(const unsigned int n) {
         for (int i = 0; i < cfg.L; ++i) {
             for (int j = 0; j < cfg.L; ++j) {
                 if (!discovered[i][j]) {
-                    flipCluster = dist_one(gen_metro) < 0.5;
+                    flipCluster = dist_one(rng) < 0.5;
                     std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));
                     discovered[i][j] = 1;
 
@@ -140,40 +140,41 @@ void System::wangRuns(const unsigned int n) {
 
                         nx = x;
                         ny = (y + 1) % cfg.L;
-                        if (grid[x][y] == grid[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][y]) {
+                        if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][y]) {
                             deq.push_back(std::make_tuple(nx, ny));
                             discovered[nx][ny] = 1;
                         }
 
                         nx = (x + 1) % cfg.L;
                         ny = y;
-                        if (grid[x][y] == grid[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[x][y]) {
+                        if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[x][y]) {
                             deq.push_back(std::make_tuple(nx, ny));
                             discovered[nx][ny] = 1;
                         }
 
                         nx = x;
                         ny = (y - 1 + cfg.L) % cfg.L;
-                        if (grid[x][y] == grid[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][ny]) {
+                        if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][ny]) {
                             deq.push_back(std::make_tuple(nx, ny));
                             discovered[nx][ny] = 1;
                         }
 
                         nx = (x - 1 + cfg.L) % cfg.L;
                         ny = y;
-                        if (grid[x][y] == grid[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[nx][y]) {
+                        if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[nx][y]) {
                             deq.push_back(std::make_tuple(nx, ny));
                             discovered[nx][ny] = 1;
                         }
 
                         if (flipCluster)
-                            grid[x][y] *= -1;
+                            lattice[x][y] *= -1;
                         deq.pop_front();
                     }
                 }
             }
         }
     }
+    return lattice;
 }
 
 void System::compute() {
@@ -183,15 +184,14 @@ void System::compute() {
     for(int evolveStep=0; evolveStep<cfg.n2; ++evolveStep) {
         measure();
 
-        // record results
         if(cfg.recordMain)
             recordResults();
 
         //  evolve
         if (cfg.alg == "metro")
-            metropolis_sweeps(cfg.n3);
+            grid = metropolis_sweeps(grid, cfg.n3);
         else if(cfg.alg == "sw")
-            wangRuns(cfg.n3);
+            grid = wangRuns(grid, cfg.n3);
         else
             std::cerr << "unknown alg!" << std::endl;
     }
