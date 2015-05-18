@@ -1,30 +1,29 @@
 #include <sstream>
 #include "System.h"
-#include "algs.h"
 #include "physics.h"
 #include <boost/algorithm/string.hpp>
 
 System::System(Config p_cfg, LabConfig& labCfg) {
-    results = std::vector<std::string>(6,"");
+    results = std::vector<std::string>(6, "");
     cfg = p_cfg;
-    long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
-    gen_metro = std::mt19937(seed1);
 
     double beta = 1.0f/cfg.T;
     int buffer_offset = 8*abs(cfg.J);
-    for(int dE=0; dE<(buffer_offset*2+1); ++dE)
+    for(int dE=0; dE < buffer_offset*2+1; ++dE)
         exp_values.push_back(exp(-(dE-buffer_offset)*beta));
 
     corr_count = 500;
     corr_range = cfg.L/2;
 
+    long long int seed1 = std::chrono::_V2::system_clock::now().time_since_epoch().count();
+    gen_metro = std::mt19937(seed1);
     std::default_random_engine generator(seed1);
-    std::uniform_int_distribution<unsigned int> dist(0, cfg.L-1);
+    std::uniform_int_distribution<unsigned int> dist_grid(0, cfg.L-1);
 
     for(int i=0; i< corr_count; ++i){
         correlations.push_back(correlationPoint());
-        correlations.back().i = dist(generator);
-        correlations.back().j = dist(generator);
+        correlations.back().i = dist_grid(generator);
+        correlations.back().j = dist_grid(generator);
         correlations.back().corr_a.assign(corr_range, 0.0);
         correlations.back().corr_ab.assign(corr_range, 0.0);
     }
@@ -80,10 +79,10 @@ std::vector<std::vector<int> > System::getRelaxedSys(int seedOffset) {
     else
         grid = getFileState(cfg.initial);
 
-    if(cfg.alg1=="metro")
+    if(cfg.alg == "metro")
         metropolis_sweeps(cfg.n1);
-    else if(cfg.alg1=="sw")
-        wangRepeats(grid, cfg.T, cfg.n1, cfg.J);
+    else if(cfg.alg == "sw")
+        wangRuns(cfg.n1);
     else
         std::cerr << "unknown alg!" << std::endl;
     return grid;
@@ -105,6 +104,78 @@ void System::metropolis_sweeps(unsigned int n) {
     }
 }
 
+void System::wangRuns(const unsigned int n) {
+    std::uniform_real_distribution<double> dist_one(0,1);
+    const double freezeProbability = 1.0 - exp(-2.0f*cfg.J/cfg.T);
+
+    std::vector<std::vector<int> > discovered;
+    std::vector<std::vector<int> > doesBondNorth;
+    std::vector<std::vector<int> > doesBondEast;
+
+    bool flipCluster;
+    int x, y, nx, ny;
+    for(int run=0; run<n; ++run) {
+        discovered.assign(cfg.L, std::vector<int>(cfg.L, 0));
+        doesBondNorth.assign(cfg.L, std::vector<int>(cfg.L, 0));
+        doesBondEast.assign(cfg.L, std::vector<int>(cfg.L, 0));
+
+        for (int i = 0; i < cfg.L; ++i) {
+            for (int j = 0; j < cfg.L; ++j) {
+                doesBondNorth[i][j] = dist_one(gen_metro) < freezeProbability;
+                doesBondEast[i][j] = dist_one(gen_metro) < freezeProbability;
+            }
+        }
+
+
+        for (int i = 0; i < cfg.L; ++i) {
+            for (int j = 0; j < cfg.L; ++j) {
+                if (!discovered[i][j]) {
+                    flipCluster = dist_one(gen_metro) < 0.5;
+                    std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));
+                    discovered[i][j] = 1;
+
+                    while (!deq.empty()) {
+                        x = std::get<0>(deq.front());
+                        y = std::get<1>(deq.front());
+
+                        nx = x;
+                        ny = (y + 1) % cfg.L;
+                        if (grid[x][y] == grid[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][y]) {
+                            deq.push_back(std::make_tuple(nx, ny));
+                            discovered[nx][ny] = 1;
+                        }
+
+                        nx = (x + 1) % cfg.L;
+                        ny = y;
+                        if (grid[x][y] == grid[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[x][y]) {
+                            deq.push_back(std::make_tuple(nx, ny));
+                            discovered[nx][ny] = 1;
+                        }
+
+                        nx = x;
+                        ny = (y - 1 + cfg.L) % cfg.L;
+                        if (grid[x][y] == grid[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][ny]) {
+                            deq.push_back(std::make_tuple(nx, ny));
+                            discovered[nx][ny] = 1;
+                        }
+
+                        nx = (x - 1 + cfg.L) % cfg.L;
+                        ny = y;
+                        if (grid[x][y] == grid[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[nx][y]) {
+                            deq.push_back(std::make_tuple(nx, ny));
+                            discovered[nx][ny] = 1;
+                        }
+
+                        if (flipCluster)
+                            grid[x][y] *= -1;
+                        deq.pop_front();
+                    }
+                }
+            }
+        }
+    }
+}
+
 void System::compute() {
     if (calc_states)
         results[states] += to_string(cfg.T) + "\n";
@@ -117,10 +188,10 @@ void System::compute() {
             recordResults();
 
         //  evolve
-        if (cfg.alg2 == "metro")
+        if (cfg.alg == "metro")
             metropolis_sweeps(cfg.n3);
-        else if(cfg.alg2 == "sw")
-            wangRepeats(grid, cfg.T, cfg.n3, cfg.J);
+        else if(cfg.alg == "sw")
+            wangRuns(cfg.n3);
         else
             std::cerr << "unknown alg!" << std::endl;
     }

@@ -14,14 +14,15 @@ class System{
 public:
 	System(Config, LabConfig&);
 	void compute();
-	void measure();
 	Config cfg;
 	std::vector<std::string> results;
 private:
+	void measure();
 	std::vector<std::vector<int> > genRandomSystem(int seedOffset);
 	std::vector<std::vector<int> > getRelaxedSys(int seedOffsets);
 	std::vector<std::vector<int> > getFileState(std::string filename);
 	void metropolis_sweeps(unsigned int);
+	void wangRuns(const unsigned int n);
 	std::mt19937 gen_metro;
 	std::vector<double> exp_values;
 

@@ -34,10 +34,8 @@ void checkParam(int argc, char* argv[], Config& cfg, LabConfig& labCfg){
             cfg.J = atoi(value.c_str());
         else if (key == "initial")
             cfg.initial = value;
-        else if (key == "alg1")
-            cfg.alg1 = value;
-        else if (key == "alg2")
-            cfg.alg2 = value;
+        else if (key == "alg")
+            cfg.alg = value;
         else if (key == "record")
             cfg.recordMain = value == "main";
         else if (key == "dist")
@@ -71,11 +69,13 @@ int main(int argc, char* argv[]){
         return 1;
     }
 
+    // use cmd arguments
     Config cfg;
     LabConfig labCfg;
     checkParam(argc, argv, cfg, labCfg);
     omp_set_num_threads(cfg.threadCount);
 
+    // setup temperatures and systems
     std::vector<double> temps;
     if(labCfg.normalDist)
         temps = normalSpace(labCfg.TMin, labCfg.TMax, labCfg.TSteps, 2.269, 1.0);
@@ -88,6 +88,7 @@ int main(int argc, char* argv[]){
         systems.push_back(System(cfg, labCfg));
     }
 
+    // do the computations
     std::string progressStr = std::string(labCfg.TSteps, '.');
     std::cout << progressStr.c_str() << std::endl;
 
@@ -98,24 +99,27 @@ int main(int argc, char* argv[]){
     }
     std::cout << std::endl;
 
-
+    // save results
     std::ofstream fileOut;
     for(unsigned int i=0; i<labCfg.output_filenames.size(); ++i){
-        if( ! labCfg.output_filenames[i].empty() && i!=states){
-            fileOut.open(labCfg.output_filenames[i]+".txt");
-            for (auto& sys : systems)
-                fileOut << to_string(sys.cfg.T) << sys.results[i] << std::endl;
-            fileOut.close();
-        }
-        if( ! labCfg.output_filenames[i].empty() && i==states){
-            for (int j=0; j<systems.size(); ++j){
-                fileOut.open(labCfg.output_filenames[i]+to_string(j)+".txt");
-                fileOut << systems[j].results[states] << std::endl;
+        if(! labCfg.output_filenames[i].empty()){
+            if(i != states){
+                fileOut.open(labCfg.output_filenames[i]+".txt");
+                for (auto& sys : systems)
+                    fileOut << to_string(sys.cfg.T) << sys.results[i] << std::endl;
                 fileOut.close();
+            }
+            else{
+                for(int j=0; j<systems.size(); ++j){
+                    fileOut.open(labCfg.output_filenames[i]+to_string(j)+".txt");
+                    fileOut << systems[j].results[states] << std::endl;
+                    fileOut.close();
+                }
             }
         }
     }
 
+    // print runtime
     auto t1 = std::chrono::high_resolution_clock::now();
     float secs = (std::chrono::duration_cast <std::chrono::milliseconds > (t1-t0).count())*0.001f;
     std::cout << "runtime: " << secs << "s" << std::endl;
