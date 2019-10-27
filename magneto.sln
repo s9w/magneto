@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29411.138
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "magneto", "magneto\magneto.vcxproj", "{320C17E5-0B61-48D4-831D-841F559671E7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{320C17E5-0B61-48D4-831D-841F559671E7}.Debug|x64.ActiveCfg = Debug|x64
+		{320C17E5-0B61-48D4-831D-841F559671E7}.Debug|x64.Build.0 = Debug|x64
+		{320C17E5-0B61-48D4-831D-841F559671E7}.Debug|x86.ActiveCfg = Debug|x64
+		{320C17E5-0B61-48D4-831D-841F559671E7}.Release|x64.ActiveCfg = Release|x64
+		{320C17E5-0B61-48D4-831D-841F559671E7}.Release|x64.Build.0 = Release|x64
+		{320C17E5-0B61-48D4-831D-841F559671E7}.Release|x86.ActiveCfg = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CBC05011-B9B6-4E31-8F45-4EE598AF95A3}
+	EndGlobalSection
+EndGlobal
