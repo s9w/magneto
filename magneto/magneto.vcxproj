@@ -74,6 +74,7 @@
     <ClCompile Include="system.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="system.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
