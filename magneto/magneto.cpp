@@ -2,115 +2,72 @@
 #include "Output.h"
 #include "LatticeIndexRng.h"
 
+#include <future>
 #include <string>
 #include <iostream>
 #include <thread>
-#include <mutex>
-#include <map>
-
-std::mutex rng_buffers_mutex;
 
 
-std::vector<double> get_buffer_vector(const int buffer_size) {
-   long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-   std::mt19937 rng = std::mt19937(seed1);
-   std::uniform_real_distribution <double > dist_one(0.0, 1.0);
-   std::vector<double> buffer(buffer_size);
-
-   for (int i = 0; i < buffer_size; ++i)
-      buffer[i] = dist_one(rng);
-   return buffer;
-}
-
-
-void make_rng_numbers(
-	std::map<std::thread::id, std::vector<double>>& rng_buffers, 
-	const int buffer_size,
-	std::map<std::thread::id, bool>& threads_done
+std::vector<double> get_random_buffer(
+	const int buffer_size
 ) {
-	std::pair<std::map<std::thread::id, std::vector<double>>::iterator, bool> emplace_pair;
-   {
-      std::scoped_lock guard(rng_buffers_mutex);
-      emplace_pair = rng_buffers.emplace(std::this_thread::get_id(), std::vector<double>(buffer_size));
-      threads_done.emplace(std::this_thread::get_id(), false);
-   }
-
-   long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-   std::mt19937 rng = std::mt19937(seed1);
+	long long int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+	std::mt19937 rng = std::mt19937(seed1);
 	std::uniform_real_distribution <double > dist_one(0.0, 1.0);
-   std::vector<double>& buffer = emplace_pair.first->second;
-   for (int i = 0; i < buffer_size; ++i)
-      buffer[i] = dist_one(rng);
-   threads_done[std::this_thread::get_id()] = true;
+	std::vector<double> normal_random_vector;
+	normal_random_vector.reserve(buffer_size);
+	for (int i = 0; i < buffer_size; ++i)
+		normal_random_vector.emplace_back(dist_one(rng));
+	return normal_random_vector;
 }
 
 
-void inner_loop(
-   std::vector<std::thread>& rng_threads, 
-   std::vector<double>& rng_front_buffer,
-   std::map<std::thread::id, std::vector<double>>& rng_back_buffers,
-   int& i_rng_buffer,
-   const int n_rng_buffer,
-   std::map<std::thread::id, bool>& threads_done
+void refill_exp_function_buffer(
+	std::vector<std::future<std::vector<double>>>& futures,
+	std::vector<double>& random_buffer,
+	const int exp_function_buffer_size
 ) {
-   while (true) {
-      for (std::thread& t : rng_threads) {
-         const auto thread_id = t.get_id();
-         if (!threads_done[thread_id])
-            continue;
-         
-         t.join();
-         {
-            std::scoped_lock guard(rng_buffers_mutex);
-            rng_front_buffer = rng_back_buffers.at(thread_id);
-            rng_back_buffers.erase(thread_id);
-            threads_done.erase(thread_id);
-         }
-         i_rng_buffer = 0;
-         t = std::thread(make_rng_numbers, std::ref(rng_back_buffers), n_rng_buffer, std::ref(threads_done));
-         return;
-      }
-   }
+	// usually there should be a thread already finished
+	for (auto& future : futures) {
+		// future.is_ready() is ironically not yet in the standard, but it is in MSVC... and way too convenient to ignore
+		if (future._Is_ready()) {
+			random_buffer = std::move(future.get());
+			future = std::async(std::launch::async, get_random_buffer, exp_function_buffer_size);
+			return;
+		}
+	}
+	// no thread finished yet.. should only happen at the start after the first sweep
+	random_buffer = std::move(futures.front().get());
+	futures.front() = std::async(std::launch::async, get_random_buffer, exp_function_buffer_size);
 }
 
 
 int main() {
 	constexpr int L = 400;
-	const int n_metropolis = 1;
 	const magneto::PhysicsSettings physics{ 1, 2.2 };
-	
-	const int n_rng_buffer = L * L * 10;
+	const int random_buffer_size = L * L;
 
-	std::vector<double> rng_front_buffer = get_buffer_vector(n_rng_buffer);
-   std::map<std::thread::id, std::vector<double>> rng_back_buffers;
-	std::map<std::thread::id, bool> threads_done;
-
+	std::vector<double> random_buffer = get_random_buffer(random_buffer_size);
 	const std::vector<double> exp_values = get_cached_exp_values(physics);
 
-	const int max_rng_threads = 2;
-   std::vector<std::thread> rng_threads;
+	magneto::Output writer(L, 8);
+	const int max_rng_threads = 2; // two threads compting random values saturate one thread of metropolis sweeps
+	std::vector<std::future<std::vector<double>>> future_random_buffers;
 	magneto::LatticeIndexRng lattice_rng(L);
 	magneto::GridType grid = magneto::get_randomized_system(L);
 
 	auto t0 = std::chrono::high_resolution_clock::now();
 
-	magneto::Output writer(L, 8);
+	for (int i = 0; i < max_rng_threads; ++i)
+		future_random_buffers.emplace_back(std::async(std::launch::async, get_random_buffer, random_buffer_size));
 
-   // start two threads already
-	for (int i = 0; i < 2; ++i)
-		rng_threads.emplace_back(make_rng_numbers, std::ref(rng_back_buffers), n_rng_buffer, std::ref(threads_done));
-
-	int i_rng_buffer = 0;
 	for (int i = 1; i < 1000; ++i) {
 		writer.photograph(grid);
-		magneto::metropolis_sweeps(grid, lattice_rng, exp_values, rng_front_buffer, i_rng_buffer, physics, n_metropolis);
-		i_rng_buffer++;
-		if (i_rng_buffer >= rng_front_buffer.size() - 1 - L*L* n_metropolis) {
-         inner_loop(rng_threads, rng_front_buffer, rng_back_buffers, i_rng_buffer, n_rng_buffer, threads_done);
-		}
+		magneto::metropolis_sweeps(grid, lattice_rng, exp_values, random_buffer, physics);
+        refill_exp_function_buffer(future_random_buffers, random_buffer, random_buffer_size);
 	}
-   for (std::thread& t : rng_threads)
-	   t.join();
+	for (auto& future : future_random_buffers)
+		future.get();
 	writer.make_movie();
 	auto t1 = std::chrono::high_resolution_clock::now();
 	float secs = (std::chrono::duration_cast <std::chrono::milliseconds> (t1 - t0).count()) * 0.001f;

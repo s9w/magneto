@@ -40,25 +40,23 @@ void magneto::metropolis_sweeps(
 	GridType& grid,
 	LatticeIndexRng& lattice_rng,
 	const std::vector<double>& exp_values,
-	const std::vector<double>& rng_buffer,
-	int& i_rng_buffer,
-	const PhysicsSettings& physics, 
-	const int n
+	const std::vector<double>& random_buffer,
+	const PhysicsSettings& physics
 ){
 	const int L = static_cast<int>(grid.size());
 	std::uniform_int_distribution <int> dist_grid(0, L - 1);
 	std::uniform_real_distribution <double > dist_one(0.0, 1.0);
 	const int buffer_offset = get_exp_buffer_offset(physics.J);
+	int flip_index;
 	int flipi, flipj;
 	int dE;
-	for (int i = 0; i < L * L * n; ++i) {
-		int flip_index = lattice_rng.get();
+	for(const double random_value : random_buffer){
+		flip_index = lattice_rng.get();
 		flipi = flip_index / L;
 		flipj = flip_index % L;
 		dE = physics.J * get_dE(grid, flipi, flipj);
-		if (dE <= 0 || (rng_buffer[i_rng_buffer] < exp_values[dE + buffer_offset]))
+		if (dE <= 0 || (random_value < exp_values[dE + buffer_offset]))
 			grid[flipi][flipj] *= -1;
-		++i_rng_buffer;
 	}
 }
 
