@@ -1,16 +1,10 @@
 #include <chrono>
 #include <random>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-
 #include "system.h"
+#include "LatticeIndexRng.h"
 
 namespace {
-	unsigned char get_png_value_from_pm_one(const int value) {
-		return (value + 1) / 2 * 255;
-	}
-
 	constexpr int get_exp_buffer_offset(int J) {
 		// std::abs is not constexpr :(
 		return J>0? 8 * J : -8 * J;
@@ -32,18 +26,6 @@ magneto::GridType magneto::get_randomized_system(const int L){
 }
 
 
-void magneto::write_png(const GridType& grid, const std::filesystem::path& path){
-	std::vector<unsigned char> grid_png;
-	const int L = static_cast<int>(grid.size());
-	grid_png.reserve(L * L);
-	for (const auto& row : grid)
-		for (const auto& elem : row)
-			grid_png.emplace_back(get_png_value_from_pm_one(elem));
-
-	stbi_write_png(path.string().c_str(), L, L, 1, grid_png.data(), L * 1);
-}
-
-
 int magneto::get_dE(const GridType& grid, int i, int j){
 	const int L = static_cast<int>(grid.size());
 	return 2 * grid[i][j] * (
@@ -55,9 +37,11 @@ int magneto::get_dE(const GridType& grid, int i, int j){
 
 
 void magneto::metropolis_sweeps(
-	GridType& grid, 
-	std::mt19937& rng,
-	const std::vector<double>& exp_values, 
+	GridType& grid,
+	LatticeIndexRng& lattice_rng,
+	const std::vector<double>& exp_values,
+	const std::vector<double>& rng_buffer,
+	int& i_rng_buffer,
 	const PhysicsSettings& physics, 
 	const int n
 ){
@@ -68,11 +52,13 @@ void magneto::metropolis_sweeps(
 	int flipi, flipj;
 	int dE;
 	for (int i = 0; i < L * L * n; ++i) {
-		flipi = dist_grid(rng);
-		flipj = dist_grid(rng);
+		int flip_index = lattice_rng.get();
+		flipi = flip_index / L;
+		flipj = flip_index % L;
 		dE = physics.J * get_dE(grid, flipi, flipj);
-		if (dE <= 0 || (dist_one(rng) < exp_values[dE + buffer_offset]))
+		if (dE <= 0 || (rng_buffer[i_rng_buffer] < exp_values[dE + buffer_offset]))
 			grid[flipi][flipj] *= -1;
+		++i_rng_buffer;
 	}
 }
 

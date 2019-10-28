@@ -68,13 +68,18 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LatticeIndexRng.cpp" />
     <ClCompile Include="magneto.cpp" />
+    <ClCompile Include="Output.cpp" />
     <ClCompile Include="system.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LatticeIndexRng.h" />
+    <ClInclude Include="Output.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="system.h" />
   </ItemGroup>

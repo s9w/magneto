@@ -5,6 +5,8 @@
 #include <random>
 
 namespace magneto {
+	class LatticeIndexRng;
+
 	using GridType = std::vector<std::vector<int>>;
 
 	struct PhysicsSettings {
@@ -13,9 +15,8 @@ namespace magneto {
 	};
 
 	GridType get_randomized_system(const int L);
-	void write_png(const GridType& grid, const std::filesystem::path& path);
 	int get_dE(const GridType& grid, int i, int j);
-	void metropolis_sweeps(GridType& grid, std::mt19937& rng, const std::vector<double>& exp_values, const PhysicsSettings& physics, const int n = 1);
+	void metropolis_sweeps(GridType& grid, LatticeIndexRng& lattice_rng, const std::vector<double>& exp_values, const std::vector<double>& rng_buffer, int& i_rng_buffer, const PhysicsSettings& physics, const int n = 1);
 
 	/// <summary>calculates all possible values of the exp-function
 	/// <para>The exponential function exp(-beta*(H2-H1)) is used extensively during the core loop 
@@ -25,5 +26,4 @@ namespace magneto {
 	/// the parameter will be shifted to start at 0.</para>
 	/// </summary>
 	std::vector<double> get_cached_exp_values(const PhysicsSettings& physics);
-
 }

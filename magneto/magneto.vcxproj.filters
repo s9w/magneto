@@ -21,12 +21,24 @@
     <ClCompile Include="magneto.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Output.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LatticeIndexRng.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stb_image_write.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Output.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LatticeIndexRng.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
