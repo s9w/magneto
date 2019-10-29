@@ -6,20 +6,26 @@
 #include "Output.h"
 
 namespace {
+	/// <summary>[-1,1] -> [0,255]</summary>
+	int get_255_value_from_pm_one(const int value) {
+		return static_cast<unsigned char>((value + 1) / 2 * 255);
+	}
+
+
 	void write_png(const magneto::LatticeType& grid, const std::filesystem::path& path) {
 		std::vector<unsigned char> grid_png;
 		const int L = static_cast<int>(grid.size());
 		grid_png.reserve(L * L);
 		for (const auto& row : grid)
 			for (const int elem : row)
-				grid_png.emplace_back(elem);
+				grid_png.emplace_back(static_cast<unsigned char>(elem));
 
 		stbi_write_png(path.string().c_str(), L, L, 1, grid_png.data(), L * 1);
 	}
 }
 
 
-magneto::Output::Output(const int L, const int blend_frames /*= 1*/)
+magneto::Output::Output(const size_t L, const int blend_frames /*= 1*/)
 	: m_gridbuffer(std::vector<std::vector<int>>(L, std::vector<int>(L, 0)))
 	, m_framecount(0)
 	, m_blendframes(blend_frames)
@@ -55,7 +61,7 @@ void magneto::Output::photograph(const LatticeType& grid){
 
 
 void magneto::Output::make_movie() const{
-	const std::string ffmpeg_path = "C:\\Users\\swerhausen\\Dropbox\\magneto\\magneto\\ffmpeg.exe";
+	const std::string ffmpeg_path = "C:\\Dropbox\\magneto\\magneto\\ffmpeg.exe";
 	const std::string cmd = ffmpeg_path + " -y -hide_banner -loglevel panic -framerate 60 -i png\\test_%d.png -c:v libx264 test.mp4";
 	system(cmd.c_str());
 	clear_png_directory();
@@ -77,6 +83,4 @@ void magneto::Output::clear_png_directory() const{
 }
 
 
-unsigned short magneto::get_255_value_from_pm_one(const int value) {
-	return static_cast<unsigned short>((value + 1) / 2 * 255);
-}
+

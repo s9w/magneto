@@ -39,36 +39,49 @@ int magneto::get_dE(const LatticeType& grid, int i, int j){
 }
 
 
-void magneto::metropolis_sweeps(
-	LatticeType& grid,
+void magneto::IsingSystem::metropolis_sweeps(
 	const IndexPairVector& lattice_indices,
-	const std::vector<double>& exp_values,
-	const std::vector<double>& random_buffer,
-	const PhysicsSettings& physics
+	const std::vector<double>& random_buffer
 ){
-	const int L = static_cast<int>(grid.size());
+	const int L = static_cast<int>(m_lattice.size());
 	std::uniform_int_distribution <int> dist_grid(0, L - 1);
 	std::uniform_real_distribution <double > dist_one(0.0, 1.0);
-	const int buffer_offset = get_exp_buffer_offset(physics.J);
+	const int buffer_offset = get_exp_buffer_offset(m_J);
 	int flip_i, flip_j;
 	int dE;
 	for(int i=0; i < random_buffer.size(); ++i){
 		flip_i = lattice_indices[i].first;
 		flip_j = lattice_indices[i].second;
-		dE = physics.J * get_dE(grid, flip_i, flip_j);
-		if (dE <= 0 || (random_buffer[i] < exp_values[dE + buffer_offset]))
-			grid[flip_i][flip_j] *= -1;
+		dE = m_J * get_dE(m_lattice, flip_i, flip_j);
+		if (dE <= 0 || (random_buffer[i] < m_cached_exp_values[dE + buffer_offset]))
+			m_lattice[flip_i][flip_j] *= -1;
 	}
 }
 
 
-std::vector<double> magneto::get_cached_exp_values(const PhysicsSettings& physics){
+const magneto::LatticeType& magneto::IsingSystem::get_lattice() const{
+	return m_lattice;
+}
+
+size_t magneto::IsingSystem::get_L() const{
+	return m_lattice.size();
+}
+
+std::vector<double> magneto::get_cached_exp_values(const int J, const double T){
 	std::vector<double> exp_values;
-	const int min_value = -8 * physics.J;
-	const int max_value = 8 * physics.J;
+	const int min_value = -8 * J;
+	const int max_value = 8 * J;
 	const int value_count = max_value - min_value + 1;
-	const int buffer_offset = get_exp_buffer_offset(physics.J);
+	const int buffer_offset = get_exp_buffer_offset(J);
 	for (int dE = 0; dE < value_count; ++dE)
-		exp_values.push_back(exp(-(dE - buffer_offset) / physics.T));
+		exp_values.push_back(exp(-(dE - buffer_offset) / T));
 	return exp_values;
+}
+
+magneto::IsingSystem::IsingSystem(const int j, const double T, const int L)
+	: m_J(j), m_T(T)
+	, m_lattice(get_randomized_system(L))
+	, m_cached_exp_values(get_cached_exp_values(m_J, m_T))
+{
+
 }

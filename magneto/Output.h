@@ -3,12 +3,11 @@
 #include "system.h"
 
 namespace magneto {
-	unsigned short get_255_value_from_pm_one(const int value);
 
 	class Output
 	{
 	public:
-		Output(const int L, const int blend_frames = 1);
+		Output(const size_t L, const int blend_frames = 1);
 		void photograph(const LatticeType& grid);
 		void make_movie() const;
 	private:

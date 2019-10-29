@@ -65,21 +65,18 @@ void refill_target_buffer_from_futures(
 
 
 int main() {
-	const magneto::PhysicsSettings physics{ 1, 2.0, 500 };
-	const size_t random_buffer_size = physics.L * physics.L;
 	ProgressIndicator progress;
-
-	auto get_random_buffer_baked = [&]{return get_random_buffer(random_buffer_size); };
+	magneto::IsingSystem system(1, 2.0, 500);
+	const size_t random_buffer_size = system.get_L() * system.get_L();
+	auto get_random_buffer_baked = [&] {return get_random_buffer(random_buffer_size); };
 	std::vector<double> random_buffer = get_random_buffer_baked();
-	const std::vector<double> exp_values = get_cached_exp_values(physics);
-	auto get_lattice_indices_baked = [&] {return get_lattice_indices(random_buffer_size, physics.L); };
+	auto get_lattice_indices_baked = [&] {return get_lattice_indices(random_buffer_size, static_cast<int>(system.get_L())); };
 	IndexPairVector lattice_index_buffer = get_lattice_indices_baked();
 	std::vector<std::future<IndexPairVector>> lattice_index_futures;
 
-	magneto::Output writer(physics.L, 8);
+	magneto::Output writer(system.get_L(), 8);
 	const int max_rng_threads = 2; // two threads computing random values saturate one thread of metropolis sweeps
 	std::vector<std::future<std::vector<double>>> future_random_buffers;
-	magneto::LatticeType lattice = magneto::get_randomized_system(physics.L);
 
 	auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -88,10 +85,10 @@ int main() {
 		lattice_index_futures.emplace_back(std::async(std::launch::async, get_lattice_indices_baked));
 	}
 
-	const int metropolis_sweets = 2000;
+	const int metropolis_sweets = 1000;
 	for (int i = 1; i < metropolis_sweets; ++i) {
-		writer.photograph(lattice);
-		magneto::metropolis_sweeps(lattice, lattice_index_buffer, exp_values, random_buffer, physics);
+		writer.photograph(system.get_lattice());
+		system.metropolis_sweeps(lattice_index_buffer, random_buffer);
 		refill_target_buffer_from_futures<std::vector<double>>(future_random_buffers, random_buffer, get_random_buffer_baked);
 		refill_target_buffer_from_futures<IndexPairVector>(lattice_index_futures, lattice_index_buffer, get_lattice_indices_baked);
 		progress.set_progress(i, metropolis_sweets);
