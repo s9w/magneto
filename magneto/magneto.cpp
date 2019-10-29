@@ -1,6 +1,7 @@
 #include "system.h"
 #include "Output.h"
 #include "ProgressIndicator.h"
+#include "windows.h"
 
 #include <future>
 #include <string>
@@ -76,10 +77,22 @@ magneto::IsingSystem get_ising_system_from_png_file(const std::filesystem::path&
 }
 
 
+/// <summary>Self-explanatory, but doesn't seem to work on powershell</summary>
+void set_console_cursor_visibility(bool visibility) {
+	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO     cursorInfo;
+	GetConsoleCursorInfo(out, &cursorInfo);
+	cursorInfo.bVisible = visibility; // set the cursor visibility
+	cursorInfo.dwSize = 100;
+	SetConsoleCursorInfo(out, &cursorInfo);
+}
+
+
 int main() {
+	set_console_cursor_visibility(false);
 	ProgressIndicator progress;
-	//magneto::IsingSystem system(1, 2.0, 500);
-	magneto::IsingSystem system(get_ising_system_from_png_file("input"));
+	magneto::IsingSystem system(1, 2.26, 800);
+	//magneto::IsingSystem system(get_ising_system_from_png_file("input"));
 	const size_t random_buffer_size = system.get_L() * system.get_L();
 	auto get_random_buffer_baked = [&] {return get_random_buffer(random_buffer_size); };
 	std::vector<double> random_buffer = get_random_buffer_baked();
