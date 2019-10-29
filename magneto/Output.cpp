@@ -56,9 +56,9 @@ void magneto::Output::photograph(const LatticeType& grid){
 
 void magneto::Output::make_movie() const{
 	const std::string ffmpeg_path = "C:\\Users\\swerhausen\\Dropbox\\magneto\\magneto\\ffmpeg.exe";
-	const std::string cmd = ffmpeg_path + " -y -i png\\test_%d.png -c:v huffyuv test.mkv";
+	const std::string cmd = ffmpeg_path + " -y -hide_banner -loglevel panic -framerate 60 -i png\\test_%d.png -c:v libx264 test.mp4";
 	system(cmd.c_str());
-	//clear_png_directory();
+	clear_png_directory();
 }
 
 
@@ -76,11 +76,7 @@ void magneto::Output::clear_png_directory() const{
 	std::filesystem::remove_all("png");
 }
 
-unsigned char magneto::get_255_char_from_pm_one(const int value){
-	return (value + 1) / 2 * 255;
-}
 
-
-unsigned short magneto::get_255_value_from_pm_one(const int value){
-	return (value + 1) / 2 * 255;
+unsigned short magneto::get_255_value_from_pm_one(const int value) {
+	return static_cast<unsigned short>((value + 1) / 2 * 255);
 }

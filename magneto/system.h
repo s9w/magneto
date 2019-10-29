@@ -4,6 +4,8 @@
 #include <vector>
 #include <random>
 
+using IndexPairVector = std::vector<std::pair<int, int>>;
+
 namespace magneto {
 	class LatticeIndexRng;
 
@@ -12,12 +14,13 @@ namespace magneto {
 	struct PhysicsSettings {
 		int J = 1;
 		double T = 2.2;
-		size_t L = 1;
+		int L = 1;
 	};
 
 	LatticeType get_randomized_system(const int L);
+	LatticeType get_empty_system(const int L);
 	int get_dE(const LatticeType& grid, int i, int j);
-	void metropolis_sweeps(LatticeType& grid, LatticeIndexRng& lattice_rng, const std::vector<double>& exp_values, const std::vector<double>& rng_buffer, const PhysicsSettings& physics);
+	void metropolis_sweeps(LatticeType& grid, const IndexPairVector& lattice_indices, const std::vector<double>& exp_values, const std::vector<double>& rng_buffer, const PhysicsSettings& physics);
 
 	/// <summary>calculates all possible values of the exp-function
 	/// <para>The exponential function exp(-beta*(H2-H1)) is used extensively during the core loop 

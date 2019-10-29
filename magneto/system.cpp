@@ -2,7 +2,6 @@
 #include <random>
 
 #include "system.h"
-#include "LatticeIndexRng.h"
 
 namespace {
 	constexpr int get_exp_buffer_offset(int J) {
@@ -26,6 +25,10 @@ magneto::LatticeType magneto::get_randomized_system(const int L){
 }
 
 
+magneto::LatticeType magneto::get_empty_system(const int L){
+	return LatticeType(L, std::vector<int>(L, -1));
+}
+
 int magneto::get_dE(const LatticeType& grid, int i, int j){
 	const int L = static_cast<int>(grid.size());
 	return 2 * grid[i][j] * (
@@ -38,7 +41,7 @@ int magneto::get_dE(const LatticeType& grid, int i, int j){
 
 void magneto::metropolis_sweeps(
 	LatticeType& grid,
-	LatticeIndexRng& lattice_rng,
+	const IndexPairVector& lattice_indices,
 	const std::vector<double>& exp_values,
 	const std::vector<double>& random_buffer,
 	const PhysicsSettings& physics
@@ -47,16 +50,14 @@ void magneto::metropolis_sweeps(
 	std::uniform_int_distribution <int> dist_grid(0, L - 1);
 	std::uniform_real_distribution <double > dist_one(0.0, 1.0);
 	const int buffer_offset = get_exp_buffer_offset(physics.J);
-	int flip_index;
-	int flipi, flipj;
+	int flip_i, flip_j;
 	int dE;
-	for(const double random_value : random_buffer){
-		flip_index = lattice_rng.get();
-		flipi = flip_index / L;
-		flipj = flip_index % L;
-		dE = physics.J * get_dE(grid, flipi, flipj);
-		if (dE <= 0 || (random_value < exp_values[dE + buffer_offset]))
-			grid[flipi][flipj] *= -1;
+	for(int i=0; i < random_buffer.size(); ++i){
+		flip_i = lattice_indices[i].first;
+		flip_j = lattice_indices[i].second;
+		dE = physics.J * get_dE(grid, flip_i, flip_j);
+		if (dE <= 0 || (random_buffer[i] < exp_values[dE + buffer_offset]))
+			grid[flip_i][flip_j] *= -1;
 	}
 }
 

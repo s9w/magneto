@@ -24,7 +24,7 @@
     <ClCompile Include="Output.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LatticeIndexRng.cpp">
+    <ClCompile Include="ProgressIndicator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,7 +38,7 @@
     <ClInclude Include="Output.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LatticeIndexRng.h">
+    <ClInclude Include="ProgressIndicator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

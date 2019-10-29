@@ -3,7 +3,6 @@
 #include "system.h"
 
 namespace magneto {
-	unsigned char get_255_char_from_pm_one(const int value);
 	unsigned short get_255_value_from_pm_one(const int value);
 
 	class Output
