@@ -3,26 +3,36 @@
 #include <filesystem>
 #include <vector>
 #include <random>
+#include <variant>
 
 using IndexPairVector = std::vector<std::pair<int, int>>;
 
 namespace magneto {
 	class LatticeIndexRng;
 
-	using LatticeType = std::vector<std::vector<int>>;
+	template<class T>
+	using LatticeTType = std::vector<std::vector<T>>;
+	using LatticeType = LatticeTType<int>;
+	using LatticeTemps = LatticeTType<double>;
+
+	//using LatticeTType = std::vector<std::vector<double>>;
 
 	class IsingSystem {
 	public:
 		IsingSystem(const int j, const double T, const int L);
-		IsingSystem(const int j, const double T, const int L, unsigned char* png_data, const int bpp);
-		void metropolis_sweeps(const IndexPairVector& lattice_indices, const std::vector<double>& rng_buffer);
+		IsingSystem(const int j, const double T, const std::filesystem::path& input_path);
+		IsingSystem(const int j, const std::filesystem::path& lattice_png_path, const std::filesystem::path& temp_png_path);
+		void metropolis_sweeps(const IndexPairVector& lattice_indices, const std::vector<double>& random_buffer);
 		[[nodiscard]] const LatticeType& get_lattice() const;
 		size_t get_L() const;
 
 	private:
+		void metropolis_sweeps_uniform_t(const IndexPairVector& lattice_indices, const std::vector<double>& random_buffer);
+		void metropolis_sweeps_variable_t(const IndexPairVector& lattice_indices, const std::vector<double>& random_buffer);
+
 		LatticeType m_lattice;
 		int m_J = 1;
-		double m_T = 2.2;
+		std::variant<double, LatticeTemps> m_T;
 		std::vector<double> m_cached_exp_values;
 	};
 

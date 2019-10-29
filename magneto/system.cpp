@@ -1,6 +1,9 @@
 #include <chrono>
 #include <random>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "system.h"
 
 namespace {
@@ -48,6 +51,37 @@ namespace {
 		else if (bpp == 4)
 			return get_lattice_from_rgba_bitmap_data(png_data, L);
 	}
+
+
+	magneto::LatticeType get_lattice_from_png_file(const std::filesystem::path& path) {
+		int x, y, bpp;
+		unsigned char* data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
+		magneto::LatticeType lattice = get_lattice_from_png_data(data, bpp, x);
+		stbi_image_free(data);
+		return lattice;
+	}
+
+
+	magneto::LatticeTemps get_lattice_temps_from_png_file(
+		const std::filesystem::path& path, const double temp_min, const double temp_max
+	) {
+		int x, y, bpp;
+		unsigned char* data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
+		magneto::LatticeTemps temps(x, std::vector<double>(x));
+		const double temp_factor = temp_max - temp_min;
+		for (int i = 0; i < x; ++i) {
+			for (int j = 0; j < x; ++j) {
+				int value = 0;
+				for (int k = 0; k < 4; ++k) {
+					value += data[(i * x + j) * 4 + k];
+				}
+				value /= 4;
+				temps[i][j] = temp_min + value * 1.0 / 256 * temp_factor;
+			}
+		}
+		stbi_image_free(data);
+		return temps;
+	}
 }
 
 
@@ -83,19 +117,10 @@ void magneto::IsingSystem::metropolis_sweeps(
 	const IndexPairVector& lattice_indices,
 	const std::vector<double>& random_buffer
 ){
-	const int L = static_cast<int>(m_lattice.size());
-	std::uniform_int_distribution <int> dist_grid(0, L - 1);
-	std::uniform_real_distribution <double > dist_one(0.0, 1.0);
-	const int buffer_offset = get_exp_buffer_offset(m_J);
-	int flip_i, flip_j;
-	int dE;
-	for(int i=0; i < random_buffer.size(); ++i){
-		flip_i = lattice_indices[i].first;
-		flip_j = lattice_indices[i].second;
-		dE = m_J * get_dE(m_lattice, flip_i, flip_j);
-		if (dE <= 0 || (random_buffer[i] < m_cached_exp_values[dE + buffer_offset]))
-			m_lattice[flip_i][flip_j] *= -1;
-	}
+	if (std::holds_alternative<double>(m_T))
+		metropolis_sweeps_uniform_t(lattice_indices, random_buffer);
+	else
+		metropolis_sweeps_variable_t(lattice_indices, random_buffer);
 }
 
 
@@ -106,6 +131,46 @@ const magneto::LatticeType& magneto::IsingSystem::get_lattice() const{
 
 size_t magneto::IsingSystem::get_L() const{
 	return m_lattice.size();
+}
+
+void magneto::IsingSystem::metropolis_sweeps_uniform_t(
+	const IndexPairVector& lattice_indices, 
+	const std::vector<double>& random_buffer
+){
+	const int L = static_cast<int>(m_lattice.size());
+	std::uniform_int_distribution <int> dist_grid(0, L - 1);
+	std::uniform_real_distribution <double > dist_one(0.0, 1.0);
+	const int buffer_offset = get_exp_buffer_offset(m_J);
+	int flip_i, flip_j;
+	int dE;
+	for (int i = 0; i < random_buffer.size(); ++i) {
+		flip_i = lattice_indices[i].first;
+		flip_j = lattice_indices[i].second;
+		dE = m_J * get_dE(m_lattice, flip_i, flip_j);
+		if (dE <= 0 || (random_buffer[i] < m_cached_exp_values[dE + buffer_offset]))
+			m_lattice[flip_i][flip_j] *= -1;
+	}
+}
+
+
+void magneto::IsingSystem::metropolis_sweeps_variable_t(
+	const IndexPairVector& lattice_indices,
+	const std::vector<double>& random_buffer
+){
+	const int L = static_cast<int>(m_lattice.size());
+	std::uniform_int_distribution <int> dist_grid(0, L - 1);
+	std::uniform_real_distribution <double > dist_one(0.0, 1.0);
+	const int buffer_offset = get_exp_buffer_offset(m_J);
+	int flip_i, flip_j;
+	int dE;
+	for (int i = 0; i < random_buffer.size(); ++i) {
+		flip_i = lattice_indices[i].first;
+		flip_j = lattice_indices[i].second;
+		dE = m_J * get_dE(m_lattice, flip_i, flip_j);
+		const double exp_value = exp(-dE / std::get<LatticeTemps>(m_T)[flip_i][flip_j]);
+		if (dE <= 0 || (random_buffer[i] < exp_value))
+			m_lattice[flip_i][flip_j] *= -1;
+	}
 }
 
 
@@ -122,14 +187,28 @@ std::vector<double> magneto::get_cached_exp_values(const int J, const double T){
 
 
 magneto::IsingSystem::IsingSystem(const int j, const double T, const int L)
-	: m_J(j), m_T(T)
+	: m_J(j)
+	, m_T(T)
 	, m_lattice(get_randomized_system(L))
-	, m_cached_exp_values(get_cached_exp_values(m_J, m_T))
+	, m_cached_exp_values(get_cached_exp_values(m_J, std::get<double>(m_T)))
 {}
 
 
-magneto::IsingSystem::IsingSystem(const int j, const double T, const int L, unsigned char* png_data, const int bpp)
-	: m_J(j), m_T(T)
-	, m_lattice(get_lattice_from_png_data(png_data, bpp, L))
-	, m_cached_exp_values(get_cached_exp_values(m_J, m_T))
+magneto::IsingSystem::IsingSystem(const int j, const double T, const std::filesystem::path& input_path)
+	: m_J(j)
+	, m_T(T)
+	, m_lattice(get_lattice_from_png_file(input_path))
+	, m_cached_exp_values(get_cached_exp_values(m_J, std::get<double>(m_T)))
 {}
+
+
+magneto::IsingSystem::IsingSystem(
+	const int j, 
+	const std::filesystem::path& lattice_png_path,
+	const std::filesystem::path& temp_png_path
+)
+	: m_J(j)
+	, m_T(get_lattice_temps_from_png_file(temp_png_path, 0.0, 3.0))
+	, m_lattice(get_lattice_from_png_file(lattice_png_path))
+{
+}
