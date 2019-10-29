@@ -6,7 +6,7 @@
 #include "Output.h"
 
 namespace {
-	void write_png(const magneto::GridType& grid, const std::filesystem::path& path) {
+	void write_png(const magneto::LatticeType& grid, const std::filesystem::path& path) {
 		std::vector<unsigned char> grid_png;
 		const int L = static_cast<int>(grid.size());
 		grid_png.reserve(L * L);
@@ -30,7 +30,7 @@ magneto::Output::Output(const int L, const int blend_frames /*= 1*/)
 }
 
 
-void magneto::Output::photograph(const GridType& grid){
+void magneto::Output::photograph(const LatticeType& grid){
 	const int L = static_cast<int>(grid.size());
 	for (int i = 0; i < L; ++i) {
 		for (int j = 0; j < L; ++j) {
@@ -55,10 +55,10 @@ void magneto::Output::photograph(const GridType& grid){
 
 
 void magneto::Output::make_movie() const{
-	const std::string ffmpeg_path = "C:\\Dropbox\\magneto\\magneto\\ffmpeg.exe";
+	const std::string ffmpeg_path = "C:\\Users\\swerhausen\\Dropbox\\magneto\\magneto\\ffmpeg.exe";
 	const std::string cmd = ffmpeg_path + " -y -i png\\test_%d.png -c:v huffyuv test.mkv";
 	system(cmd.c_str());
-	clear_png_directory();
+	//clear_png_directory();
 }
 
 

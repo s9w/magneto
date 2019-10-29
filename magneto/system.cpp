@@ -12,11 +12,11 @@ namespace {
 }
 
 
-magneto::GridType magneto::get_randomized_system(const int L){
+magneto::LatticeType magneto::get_randomized_system(const int L){
 	unsigned seed1 = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
 	std::default_random_engine generator(seed1);
 	std::uniform_int_distribution <int> dist(0, 1);
-	GridType grid(L, std::vector<int>(L));
+	LatticeType grid(L, std::vector<int>(L));
 	for (int i = 0; i < L; ++i) {
 		for (int j = 0; j < L; ++j) {
 			grid[i][j] = dist(generator) * 2 - 1;
@@ -26,7 +26,7 @@ magneto::GridType magneto::get_randomized_system(const int L){
 }
 
 
-int magneto::get_dE(const GridType& grid, int i, int j){
+int magneto::get_dE(const LatticeType& grid, int i, int j){
 	const int L = static_cast<int>(grid.size());
 	return 2 * grid[i][j] * (
 		grid[i][(j + 1) % L] +
@@ -37,7 +37,7 @@ int magneto::get_dE(const GridType& grid, int i, int j){
 
 
 void magneto::metropolis_sweeps(
-	GridType& grid,
+	LatticeType& grid,
 	LatticeIndexRng& lattice_rng,
 	const std::vector<double>& exp_values,
 	const std::vector<double>& random_buffer,

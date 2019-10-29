@@ -7,16 +7,17 @@
 namespace magneto {
 	class LatticeIndexRng;
 
-	using GridType = std::vector<std::vector<int>>;
+	using LatticeType = std::vector<std::vector<int>>;
 
 	struct PhysicsSettings {
 		int J = 1;
 		double T = 2.2;
+		size_t L = 1;
 	};
 
-	GridType get_randomized_system(const int L);
-	int get_dE(const GridType& grid, int i, int j);
-	void metropolis_sweeps(GridType& grid, LatticeIndexRng& lattice_rng, const std::vector<double>& exp_values, const std::vector<double>& rng_buffer, const PhysicsSettings& physics);
+	LatticeType get_randomized_system(const int L);
+	int get_dE(const LatticeType& grid, int i, int j);
+	void metropolis_sweeps(LatticeType& grid, LatticeIndexRng& lattice_rng, const std::vector<double>& exp_values, const std::vector<double>& rng_buffer, const PhysicsSettings& physics);
 
 	/// <summary>calculates all possible values of the exp-function
 	/// <para>The exponential function exp(-beta*(H2-H1)) is used extensively during the core loop 
