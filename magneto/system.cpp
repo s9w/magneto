@@ -8,6 +8,46 @@ namespace {
 		// std::abs is not constexpr :(
 		return J>0? 8 * J : -8 * J;
 	}
+
+
+	int get_pm1_from_255_value(const int value) {
+		return value / 255 * 2 - 1;
+	}
+
+
+	magneto::LatticeType get_lattice_from_monochrome_bitmap_data(unsigned char* png_data, const int L) {
+		magneto::LatticeType lattice(L, std::vector<int>(L));
+		for (int i = 0; i < L; ++i) {
+			for (int j = 0; j < L; ++j) {
+				lattice[i][j] = get_pm1_from_255_value(png_data[i * L + j]);
+			}
+		}
+		return lattice;
+	}
+
+
+	magneto::LatticeType get_lattice_from_rgba_bitmap_data(unsigned char* png_data, const int L) {
+		magneto::LatticeType lattice(L, std::vector<int>(L));
+		for (int i = 0; i < L; ++i) {
+			for (int j = 0; j < L; ++j) {
+				int value = 0;
+				for (int k = 0; k < 4; ++k) {
+					value += png_data[(i * L + j) * 4 + k];
+				}
+				value /= 4;
+				lattice[i][j] = get_pm1_from_255_value(value);
+			}
+		}
+		return lattice;
+	}
+
+
+	magneto::LatticeType get_lattice_from_png_data(unsigned char* png_data, const int bpp, const int L) {
+		if (bpp == 1)
+			return get_lattice_from_monochrome_bitmap_data(png_data, L);
+		else if (bpp == 4)
+			return get_lattice_from_rgba_bitmap_data(png_data, L);
+	}
 }
 
 
@@ -63,9 +103,11 @@ const magneto::LatticeType& magneto::IsingSystem::get_lattice() const{
 	return m_lattice;
 }
 
+
 size_t magneto::IsingSystem::get_L() const{
 	return m_lattice.size();
 }
+
 
 std::vector<double> magneto::get_cached_exp_values(const int J, const double T){
 	std::vector<double> exp_values;
@@ -78,10 +120,16 @@ std::vector<double> magneto::get_cached_exp_values(const int J, const double T){
 	return exp_values;
 }
 
+
 magneto::IsingSystem::IsingSystem(const int j, const double T, const int L)
 	: m_J(j), m_T(T)
 	, m_lattice(get_randomized_system(L))
 	, m_cached_exp_values(get_cached_exp_values(m_J, m_T))
-{
+{}
 
-}
+
+magneto::IsingSystem::IsingSystem(const int j, const double T, const int L, unsigned char* png_data, const int bpp)
+	: m_J(j), m_T(T)
+	, m_lattice(get_lattice_from_png_data(png_data, bpp, L))
+	, m_cached_exp_values(get_cached_exp_values(m_J, m_T))
+{}

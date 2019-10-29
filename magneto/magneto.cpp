@@ -7,6 +7,9 @@
 #include <iostream>
 #include <thread>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 std::vector<double> get_random_buffer(const size_t buffer_size) {
 	unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
@@ -64,9 +67,19 @@ void refill_target_buffer_from_futures(
 }
 
 
+magneto::IsingSystem get_ising_system_from_png_file(const std::filesystem::path& path) {
+	int x, y, bpp;
+	unsigned char* data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
+	magneto::IsingSystem s(1, 2.26, x, data, bpp);
+	stbi_image_free(data);
+	return s;
+}
+
+
 int main() {
 	ProgressIndicator progress;
-	magneto::IsingSystem system(1, 2.0, 500);
+	//magneto::IsingSystem system(1, 2.0, 500);
+	magneto::IsingSystem system(get_ising_system_from_png_file("input"));
 	const size_t random_buffer_size = system.get_L() * system.get_L();
 	auto get_random_buffer_baked = [&] {return get_random_buffer(random_buffer_size); };
 	std::vector<double> random_buffer = get_random_buffer_baked();
@@ -85,7 +98,7 @@ int main() {
 		lattice_index_futures.emplace_back(std::async(std::launch::async, get_lattice_indices_baked));
 	}
 
-	const int metropolis_sweets = 1000;
+	const int metropolis_sweets = 10000;
 	for (int i = 1; i < metropolis_sweets; ++i) {
 		writer.photograph(system.get_lattice());
 		system.metropolis_sweeps(lattice_index_buffer, random_buffer);

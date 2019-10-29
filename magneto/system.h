@@ -14,6 +14,7 @@ namespace magneto {
 	class IsingSystem {
 	public:
 		IsingSystem(const int j, const double T, const int L);
+		IsingSystem(const int j, const double T, const int L, unsigned char* png_data, const int bpp);
 		void metropolis_sweeps(const IndexPairVector& lattice_indices, const std::vector<double>& rng_buffer);
 		[[nodiscard]] const LatticeType& get_lattice() const;
 		size_t get_L() const;
