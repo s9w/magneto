@@ -103,6 +103,7 @@ magneto::LatticeType magneto::get_empty_system(const int L){
 	return LatticeType(L, std::vector<int>(L, -1));
 }
 
+__declspec(noinline)
 int magneto::get_dE(const LatticeType& grid, int i, int j){
 	const int L = static_cast<int>(grid.size());
 	return 2 * grid[i][j] * (
@@ -133,6 +134,7 @@ size_t magneto::IsingSystem::get_L() const{
 	return m_lattice.size();
 }
 
+__declspec(noinline)
 void magneto::IsingSystem::metropolis_sweeps_uniform_t(
 	const IndexPairVector& lattice_indices, 
 	const std::vector<double>& random_buffer
@@ -152,7 +154,7 @@ void magneto::IsingSystem::metropolis_sweeps_uniform_t(
 	}
 }
 
-
+__declspec(noinline)
 void magneto::IsingSystem::metropolis_sweeps_variable_t(
 	const IndexPairVector& lattice_indices,
 	const std::vector<double>& random_buffer
