@@ -61,7 +61,7 @@ void magneto::Output::photograph(const LatticeType& grid){
 
 
 void magneto::Output::make_movie() const{
-	const std::string ffmpeg_path = "C:\\Dropbox\\magneto\\magneto\\ffmpeg.exe";
+	const std::string ffmpeg_path = "ffmpeg.exe";
 	const std::string cmd = ffmpeg_path + " -y -hide_banner -loglevel panic -framerate 60 -i png\\test_%d.png -c:v libx264 test.mp4";
 	system(cmd.c_str());
 	clear_png_directory();
