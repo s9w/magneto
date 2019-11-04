@@ -6,10 +6,35 @@
 #include <future>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <thread>
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/async.h"
 
-std::vector<double> get_random_buffer(const size_t buffer_size) {
+std::shared_ptr<spdlog::logger> logger;
+
+std::string thread_id_to_string(const std::thread::id& id) {
+   std::stringstream ss;
+   ss << id;
+   return ss.str();
+}
+
+template<class T>
+struct ResultWithThreadId {
+   operator T() {
+      return m_result;
+   }
+   T m_result;
+   std::string m_thread_id;
+};
+
+using UniformRandomBufferReturn = ResultWithThreadId<std::vector<double>>;
+using IndexPairVectorReturn = ResultWithThreadId<IndexPairVector>;
+
+UniformRandomBufferReturn get_random_buffer(const size_t buffer_size) {
+   const std::string thread_id = thread_id_to_string(std::this_thread::get_id());
 	unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
 	std::mt19937 rng = std::mt19937(seed);
 	std::uniform_real_distribution <double > dist_one(0.0, 1.0);
@@ -17,11 +42,13 @@ std::vector<double> get_random_buffer(const size_t buffer_size) {
 	normal_random_vector.reserve(buffer_size);
 	for (int i = 0; i < buffer_size; ++i)
 		normal_random_vector.emplace_back(dist_one(rng));
-	return normal_random_vector;
+   logger->info("get_random_buffer() done from thread {}", thread_id);
+   return { normal_random_vector, thread_id };
 }
 
 
-IndexPairVector get_lattice_indices(const size_t buffer_size, const int lattice_size) {
+IndexPairVectorReturn get_lattice_indices(const size_t buffer_size, const int lattice_size) {
+   const std::string thread_id = thread_id_to_string(std::this_thread::get_id());
 	unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
 	std::mt19937 rng = std::mt19937(seed);
 	std::uniform_int_distribution<> dist_lattice(0, lattice_size-1);
@@ -29,17 +56,20 @@ IndexPairVector get_lattice_indices(const size_t buffer_size, const int lattice_
 	indices.reserve(buffer_size);
 	for (int i = 0; i < buffer_size; ++i)
 		indices.emplace_back(dist_lattice(rng), dist_lattice(rng));
-	return indices;
+   logger->info("get_lattice_indices() done from thread {}", thread_id);
+   return { indices, thread_id };
 }
 
 
 template <class T>
 void assign_target_buffer_and_relaunch_future(
 	T& target_buffer,
-	std::future<T>& future,
-	const std::function<T()>& thread_function
+	std::future<ResultWithThreadId<T>>& future,
+	const std::function<ResultWithThreadId<T>()>& thread_function
 ) {
-	target_buffer = std::move(future.get());
+   const auto fresult = future.get();
+   logger->info("fetched results and restarting. thread: {}", fresult.m_thread_id);
+	target_buffer = std::move(fresult.m_result);
 	future = std::async(std::launch::async, thread_function);
 }
 
@@ -48,20 +78,20 @@ void assign_target_buffer_and_relaunch_future(
 /// it's being waited until one is. The future is restarted at the end.</summary>
 template <class T>
 void refill_target_buffer_from_futures(
-	std::vector<std::future<T>>& futures,
+	std::vector<std::future<ResultWithThreadId<T>>>& futures,
 	T& target_buffer,
-	const std::function<T()>& thread_function
+	const std::function<ResultWithThreadId<T>()>& thread_function
 ) {
 	// usually there should be a thread already finished
-	for (auto& future : futures) {
-		// future.is_ready() is ironically not yet in the standard, but it is in MSVC... and way too convenient to ignore
-		if (future._Is_ready()) {
-			assign_target_buffer_and_relaunch_future(target_buffer, future, thread_function);
-			return;
-		}
-	}
-	// no thread finished yet.. should only happen at the start after the first sweep or when the system is too busy
-	assign_target_buffer_and_relaunch_future(target_buffer, futures.front(), thread_function);
+   while (true) {
+      for (auto& future : futures) {
+         // future.is_ready() is ironically not yet in the standard, but it is in MSVC... and way too convenient to ignore
+         if (future._Is_ready()) {
+            assign_target_buffer_and_relaunch_future(target_buffer, future, thread_function);
+            return;
+         }
+      }
+   }
 }
 
 
@@ -77,20 +107,24 @@ void set_console_cursor_visibility(bool visibility) {
 
 
 int main() {
+   logger = spdlog::basic_logger_mt< spdlog::async_factory>("basic_logger", "log.txt");
+   logger->set_level(spdlog::level::warn);
+
 	set_console_cursor_visibility(false);
 	ProgressIndicator progress;
-	//magneto::IsingSystem system(1, 2.26, 800);
-	magneto::IsingSystem system(1, "input_random.png", "input_bunny.png");
+	magneto::IsingSystem system(1, 2.26, 300);
+	//magneto::IsingSystem system(1, "input_random.png", "input_bunny.png");
+
 	const size_t random_buffer_size = system.get_L() * system.get_L();
 	auto get_random_buffer_baked = [&] {return get_random_buffer(random_buffer_size); };
 	std::vector<double> random_buffer = get_random_buffer_baked();
 	auto get_lattice_indices_baked = [&] {return get_lattice_indices(random_buffer_size, static_cast<int>(system.get_L())); };
 	IndexPairVector lattice_index_buffer = get_lattice_indices_baked();
-	std::vector<std::future<IndexPairVector>> lattice_index_futures;
-
+	
 	magneto::Output writer(system.get_L(), 8);
 	const int max_rng_threads = 2; // two threads computing random values saturate one thread of metropolis sweeps
-	std::vector<std::future<std::vector<double>>> future_random_buffers;
+   std::vector<std::future<IndexPairVectorReturn>> lattice_index_futures;
+	std::vector<std::future<UniformRandomBufferReturn>> future_random_buffers;
 
 	auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -103,7 +137,7 @@ int main() {
 	for (int i = 1; i < metropolis_sweets; ++i) {
 		writer.photograph(system.get_lattice());
 		system.metropolis_sweeps(lattice_index_buffer, random_buffer);
-		refill_target_buffer_from_futures<std::vector<double>>(future_random_buffers, random_buffer, get_random_buffer_baked);
+      refill_target_buffer_from_futures<std::vector<double>>(future_random_buffers, random_buffer, get_random_buffer_baked);
 		refill_target_buffer_from_futures<IndexPairVector>(lattice_index_futures, lattice_index_buffer, get_lattice_indices_baked);
 		progress.set_progress(i, metropolis_sweets);
 		progress.write_progress();
