@@ -42,7 +42,7 @@ UniformRandomBufferReturn get_random_buffer(const size_t buffer_size) {
 	normal_random_vector.reserve(buffer_size);
 	for (int i = 0; i < buffer_size; ++i)
 		normal_random_vector.emplace_back(dist_one(rng));
-   logger->info("get_random_buffer() done from thread {}", thread_id);
+   logger->debug("get_random_buffer() done from thread {}", thread_id);
    return { normal_random_vector, thread_id };
 }
 
@@ -56,7 +56,7 @@ IndexPairVectorReturn get_lattice_indices(const size_t buffer_size, const int la
 	indices.reserve(buffer_size);
 	for (int i = 0; i < buffer_size; ++i)
 		indices.emplace_back(dist_lattice(rng), dist_lattice(rng));
-   logger->info("get_lattice_indices() done from thread {}", thread_id);
+   logger->debug("get_lattice_indices() done from thread {}", thread_id);
    return { indices, thread_id };
 }
 
@@ -68,7 +68,7 @@ void assign_target_buffer_and_relaunch_future(
 	const std::function<ResultWithThreadId<T>()>& thread_function
 ) {
    const auto fresult = future.get();
-   logger->info("fetched results and restarting. thread: {}", fresult.m_thread_id);
+   logger->debug("fetched results and restarting. thread: {}", fresult.m_thread_id);
 	target_buffer = std::move(fresult.m_result);
 	future = std::async(std::launch::async, thread_function);
 }
