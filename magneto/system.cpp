@@ -5,6 +5,7 @@
 #include "stb_image.h"
 
 #include "system.h"
+#include <deque>
 
 namespace {
 	constexpr int get_exp_buffer_offset(int J) {
@@ -85,6 +86,12 @@ namespace {
 }
 
 
+magneto::PropertySnapshot magneto::get_properties(const IsingSystem& system){
+   const double energy = get_E(system.get_lattice());
+   const double energy_sq = get_E_squared(system.get_lattice());
+   return { energy, energy_sq };
+}
+
 magneto::LatticeType magneto::get_randomized_system(const int L){
 	unsigned seed1 = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
 	std::default_random_engine generator(seed1);
@@ -124,6 +131,16 @@ double magneto::get_E(const LatticeType& grid){
    return E * 1.0 / (L * L);
 }
 
+double magneto::get_E_squared(const LatticeType& grid){
+	const int L = static_cast<int>(grid.size());
+	int E = 0;
+	for (int i = 0; i < L; ++i) {
+		for (int j = 0; j < L; ++j)
+			E += -grid[i][j] * (grid[i][(j + 1) % L] + grid[(i + 1) % L][j]);
+	}
+	return E * E* 1.0 / (L * L);
+}
+
 void magneto::IsingSystem::metropolis_sweeps(
 	const IndexPairVector& lattice_indices,
 	const std::vector<double>& random_buffer
@@ -134,6 +151,80 @@ void magneto::IsingSystem::metropolis_sweeps(
 		metropolis_sweeps_variable_t(lattice_indices, random_buffer);
 }
 
+void magneto::IsingSystem::wang_sweeps(const int n){
+	unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+	std::mt19937 rng = std::mt19937(seed);
+	std::uniform_real_distribution<double> dist_one(0, 1);
+	const double freezeProbability = 1.0 - exp(-2.0f * m_J / std::get<double>(m_T));
+
+	LatticeType discovered;
+	LatticeType doesBondNorth;
+	LatticeType doesBondEast;
+
+	const int L = static_cast<int>(m_lattice.size());
+	bool flipCluster;
+	int x, y, nx, ny;
+	for (int run = 0; run < n; ++run) {
+		discovered.assign(L, std::vector<int>(L, 0));
+		doesBondNorth.assign(L, std::vector<int>(L, 0));
+		doesBondEast.assign(L, std::vector<int>(L, 0));
+
+		for (int i = 0; i < L; ++i) {
+			for (int j = 0; j < L; ++j) {
+				doesBondNorth[i][j] = dist_one(rng) < freezeProbability;
+				doesBondEast[i][j] = dist_one(rng) < freezeProbability;
+			}
+		}
+
+		for (int i = 0; i < L; ++i) {
+			for (int j = 0; j < L; ++j) {
+				if (!discovered[i][j]) {
+					flipCluster = dist_one(rng) < 0.5;
+					std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));
+					discovered[i][j] = 1;
+
+					while (!deq.empty()) {
+						x = std::get<0>(deq.front());
+						y = std::get<1>(deq.front());
+
+						nx = x;
+						ny = (y + 1) % L;
+						if (m_lattice[x][y] == m_lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][y]) {
+							deq.push_back(std::make_tuple(nx, ny));
+							discovered[nx][ny] = 1;
+						}
+
+						nx = (x + 1) % L;
+						ny = y;
+						if (m_lattice[x][y] == m_lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[x][y]) {
+							deq.push_back(std::make_tuple(nx, ny));
+							discovered[nx][ny] = 1;
+						}
+
+						nx = x;
+						ny = (y - 1 + L) % L;
+						if (m_lattice[x][y] == m_lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][ny]) {
+							deq.push_back(std::make_tuple(nx, ny));
+							discovered[nx][ny] = 1;
+						}
+
+						nx = (x - 1 + L) % L;
+						ny = y;
+						if (m_lattice[x][y] == m_lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[nx][y]) {
+							deq.push_back(std::make_tuple(nx, ny));
+							discovered[nx][ny] = 1;
+						}
+
+						if (flipCluster)
+							m_lattice[x][y] *= -1;
+						deq.pop_front();
+					}
+				}
+			}
+		}
+	}
+}
+
 
 const magneto::LatticeType& magneto::IsingSystem::get_lattice() const{
 	return m_lattice;
@@ -142,6 +233,12 @@ const magneto::LatticeType& magneto::IsingSystem::get_lattice() const{
 
 size_t magneto::IsingSystem::get_L() const{
 	return m_lattice.size();
+}
+
+std::optional<double> magneto::IsingSystem::get_temp() const{
+	if (!std::holds_alternative<double>(m_T))
+		return std::nullopt;
+	return std::get<double>(m_T);
 }
 
 __declspec(noinline)
@@ -220,7 +317,7 @@ magneto::IsingSystem::IsingSystem(
 	const std::filesystem::path& temp_png_path
 )
 	: m_J(j)
-	, m_T(get_lattice_temps_from_png_file(temp_png_path, 0.0, 3.0))
+	, m_T(get_lattice_temps_from_png_file(temp_png_path, 1.0, 2.3))
 	, m_lattice(get_lattice_from_png_file(lattice_png_path))
 {
 }
