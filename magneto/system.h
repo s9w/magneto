@@ -40,6 +40,9 @@ namespace magneto {
 	LatticeType get_empty_system(const int L);
 	int get_dE(const LatticeType& grid, int i, int j);
 
+   /// <summary>Returns energy per size</summary>
+   double get_E(const LatticeType& grid);
+
 	/// <summary>calculates all possible values of the exp-function
 	/// <para>The exponential function exp(-beta*(H2-H1)) is used extensively during the core loop 
 	/// of the metropolis algorithm. Luckily, because of the nature of the Ising model, there is 

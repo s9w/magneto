@@ -114,6 +114,16 @@ int magneto::get_dE(const LatticeType& grid, int i, int j){
 }
 
 
+double magneto::get_E(const LatticeType& grid){
+   const int L = static_cast<int>(grid.size());
+   int E = 0;
+   for (int i = 0; i < L; ++i) {
+      for (int j = 0; j < L; ++j)
+         E += -grid[i][j] * (grid[i][(j + 1) % L] + grid[(i + 1) % L][j]);
+   }
+   return E * 1.0 / (L * L);
+}
+
 void magneto::IsingSystem::metropolis_sweeps(
 	const IndexPairVector& lattice_indices,
 	const std::vector<double>& random_buffer
