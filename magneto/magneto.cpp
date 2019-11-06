@@ -108,7 +108,7 @@ void do_physics(
       logger->error("Negative temperature: Tmin={}", tmin);
       return;
    }
-   if (tmax > tmin) {
+   if (tmax < tmin) {
       logger->error("TMax < TMin");
       return;
    }
