@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "spdlog/spdlog.h"
+#include <deque>
 
 namespace {
 
@@ -32,6 +33,17 @@ namespace {
       return { normal_random_vector, thread_id };
    }
 
+   std::vector<double> get_random_buffer_simple(const size_t buffer_size) {
+      unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+      std::mt19937_64 rng(seed);
+      std::uniform_real_distribution <double > dist_one(0.0, 1.0);
+      std::vector<double> normal_random_vector;
+      normal_random_vector.reserve(buffer_size);
+      for (int i = 0; i < buffer_size; ++i)
+         normal_random_vector.emplace_back(dist_one(rng));
+      return normal_random_vector;
+   }
+
 
    magneto::IndexPairVectorReturn get_lattice_indices(const size_t buffer_size, const int lattice_size) {
       const std::string thread_id = thread_id_to_string(std::this_thread::get_id());
@@ -54,10 +66,21 @@ namespace {
       const Tf& thread_function,
       Args... future_args
    ) {
-      future.wait();
       const auto fresult = future.get();
       spdlog::get("basic_logger")->debug("fetched results and restarting. thread: {}", fresult.m_thread_id);
       target_buffer = std::move(fresult.m_result);
+      future = std::async(std::launch::async, thread_function, future_args...);
+   }
+
+   template <class T, class Tf, typename... Args>
+   void assign_target_buffer_and_relaunch_future2(
+      T& target_buffer,
+      std::future<T>& future,
+      const Tf& thread_function,
+      Args... future_args
+   ) {
+      const auto fresult = future.get();
+      target_buffer = std::move(fresult);
       future = std::async(std::launch::async, thread_function, future_args...);
    }
 
@@ -81,6 +104,17 @@ namespace {
             }
          }
       }
+   }
+
+
+   template <class T, class Tf, typename... Args>
+   void refill_target_buffer_from_future(
+      std::future<T>& future,
+      T& target_buffer,
+      const Tf& thread_function,
+      Args... future_args
+   ) {
+      assign_target_buffer_and_relaunch_future2(target_buffer, future, thread_function, future_args...);
    }
 
 } // namespace {}
@@ -145,4 +179,102 @@ std::vector<double> magneto::get_cached_exp_values(const int J, const double T) 
    for (int dE = 0; dE < value_count; ++dE)
       exp_values.push_back(exp(-(dE - buffer_offset) / T));
    return exp_values;
+}
+
+
+magneto::SW::SW(const int J, const double T, const int L)
+   : m_J(J)
+   , m_T(T)
+{
+   m_bond_north_buffer = get_random_buffer_simple(L*L);
+   m_bond_east_buffer = get_random_buffer_simple(L*L);
+   m_flip_buffer = get_random_buffer_simple(L*L);
+   m_bond_north_future = std::async(std::launch::async, get_random_buffer_simple, L*L);
+   m_bond_east_future = std::async(std::launch::async, get_random_buffer_simple, L*L);
+   m_flip_future = std::async(std::launch::async, get_random_buffer_simple, L*L);
+}
+
+
+magneto::SW::~SW(){
+   m_bond_north_future.get();
+   m_bond_east_future.get();
+   m_flip_future.get();
+}
+
+
+void magneto::SW::run(LatticeType& lattice){
+   const double freezeProbability = 1.0 - exp(-2.0f * m_J / m_T);
+
+   LatticeType discovered;
+   LatticeType doesBondNorth;
+   LatticeType doesBondEast;
+
+   const int L = static_cast<int>(lattice.size());
+   bool flipCluster;
+   int x, y, nx, ny;
+   discovered.assign(L, std::vector<int>(L, 0));
+   doesBondNorth.assign(L, std::vector<int>(L, 0));
+   doesBondEast.assign(L, std::vector<int>(L, 0));
+
+   int counter = 0;
+   for (int i = 0; i < L; ++i) {
+      for (int j = 0; j < L; ++j) {
+         doesBondNorth[i][j] = m_bond_north_buffer[counter] < freezeProbability;
+         doesBondEast[i][j] = m_bond_east_buffer[counter] < freezeProbability;
+         ++counter;
+      }
+   }
+
+   counter = 0;
+   for (int i = 0; i < L; ++i) {
+      for (int j = 0; j < L; ++j) {
+         if (!discovered[i][j]) {
+            flipCluster = m_flip_buffer[counter] < 0.5;
+            std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));
+            discovered[i][j] = 1;
+
+            while (!deq.empty()) {
+               x = std::get<0>(deq.front());
+               y = std::get<1>(deq.front());
+
+               nx = x;
+               ny = (y + 1) % L;
+               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][y]) {
+                  deq.push_back(std::make_tuple(nx, ny));
+                  discovered[nx][ny] = 1;
+               }
+
+               nx = (x + 1) % L;
+               ny = y;
+               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[x][y]) {
+                  deq.push_back(std::make_tuple(nx, ny));
+                  discovered[nx][ny] = 1;
+               }
+
+               nx = x;
+               ny = (y - 1 + L) % L;
+               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][ny]) {
+                  deq.push_back(std::make_tuple(nx, ny));
+                  discovered[nx][ny] = 1;
+               }
+
+               nx = (x - 1 + L) % L;
+               ny = y;
+               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[nx][y]) {
+                  deq.push_back(std::make_tuple(nx, ny));
+                  discovered[nx][ny] = 1;
+               }
+
+               if (flipCluster)
+                  lattice[x][y] *= -1;
+               deq.pop_front();
+            }
+         }
+         ++counter;
+      }
+   }
+
+   refill_target_buffer_from_future(m_bond_north_future, m_bond_north_buffer, get_random_buffer_simple, L*L);
+   refill_target_buffer_from_future(m_bond_east_future, m_bond_east_buffer, get_random_buffer_simple, L*L);
+   refill_target_buffer_from_future(m_flip_future, m_flip_buffer, get_random_buffer_simple, L*L);
 }

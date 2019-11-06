@@ -44,15 +44,17 @@ T get_mean(const std::vector<T>& values) {
 
 
 PhysicsResult get_physical_results(const double T, const int n, const int warmup_runs, const int L) {
-	magneto::IsingSystem system(1, T, L);
+   const int J = 1;
+	magneto::IsingSystem system(J, T, L);
+   magneto::SW wang(J, T, L);
 	std::vector<magneto::PhysicalProperties> properties;
    for (int i = 1; i < warmup_runs; ++i) {
-      system.wang_sweeps();
+      wang.run(system.get_lattice_nc());
    }
 
 	for (int i = 1; i < n; ++i) {
 		properties.emplace_back(get_properties(system));
-		system.wang_sweeps();
+      wang.run(system.get_lattice_nc());
 	}
    const magneto::PhysicalProperties mean_properties = get_mean(properties);
    const double e_mean = mean_properties.energy;
@@ -61,6 +63,7 @@ PhysicsResult get_physical_results(const double T, const int n, const int warmup
    const double m_sq_mean = mean_properties.magnetization_sq;
    const double cv = (e_sq_mean - e_mean * e_mean) * L * L / (T * T);
    const double chi = (m_sq_mean - m_mean * m_mean) * L * L / T;
+   logger->info("{}() finished", __FUNCTION__);
    return {T, e_mean, cv, m_mean, chi };
 }
 
@@ -160,8 +163,13 @@ int main() {
    logger->set_level(spdlog::level::info);
    set_console_cursor_visibility(false);
 
-   //do_physics(0.01, 2.0*get_Tc(), 15, 200, 50, 300, "results.txt");
-   do_movie(2.26, 500, 1, 30*10);
+   auto t0 = std::chrono::system_clock::now();
+   //do_physics(0.01, 2.0*get_Tc(), 15, 200, 50, 100, "results.txt");
+   do_physics(0.01, 2.0*get_Tc(), 15, 300, 50, 200, "results.txt");
+   auto t1 = std::chrono::system_clock::now();
+   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count(); // ~3000
+   logger->info("runtime: {}", ms);
+   //do_movie(2.26, 500, 1, 30*10);
 
 	return 0;
 }

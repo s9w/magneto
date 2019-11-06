@@ -2,7 +2,6 @@
 #include "stb_image.h"
 
 #include "system.h"
-#include <deque>
 
 namespace {
 
@@ -154,81 +153,6 @@ double magneto::get_m_abs(const LatticeType& grid){
          m += grid[i][j];
    }
    return std::abs(m) * 1.0 / (L * L);
-}
-
-
-void magneto::IsingSystem::wang_sweeps(const int n){
-	unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-	std::mt19937_64 rng(seed);
-	std::uniform_real_distribution<double> dist_one(0, 1);
-	const double freezeProbability = 1.0 - exp(-2.0f * m_J / std::get<double>(m_T));
-
-	LatticeType discovered;
-	LatticeType doesBondNorth;
-	LatticeType doesBondEast;
-
-	const int L = static_cast<int>(m_lattice.size());
-	bool flipCluster;
-	int x, y, nx, ny;
-	for (int run = 0; run < n; ++run) {
-		discovered.assign(L, std::vector<int>(L, 0));
-		doesBondNorth.assign(L, std::vector<int>(L, 0));
-		doesBondEast.assign(L, std::vector<int>(L, 0));
-
-		for (int i = 0; i < L; ++i) {
-			for (int j = 0; j < L; ++j) {
-				doesBondNorth[i][j] = dist_one(rng) < freezeProbability;
-				doesBondEast[i][j] = dist_one(rng) < freezeProbability;
-			}
-		}
-
-		for (int i = 0; i < L; ++i) {
-			for (int j = 0; j < L; ++j) {
-				if (!discovered[i][j]) {
-					flipCluster = dist_one(rng) < 0.5;
-					std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));
-					discovered[i][j] = 1;
-
-					while (!deq.empty()) {
-						x = std::get<0>(deq.front());
-						y = std::get<1>(deq.front());
-
-						nx = x;
-						ny = (y + 1) % L;
-						if (m_lattice[x][y] == m_lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][y]) {
-							deq.push_back(std::make_tuple(nx, ny));
-							discovered[nx][ny] = 1;
-						}
-
-						nx = (x + 1) % L;
-						ny = y;
-						if (m_lattice[x][y] == m_lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[x][y]) {
-							deq.push_back(std::make_tuple(nx, ny));
-							discovered[nx][ny] = 1;
-						}
-
-						nx = x;
-						ny = (y - 1 + L) % L;
-						if (m_lattice[x][y] == m_lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][ny]) {
-							deq.push_back(std::make_tuple(nx, ny));
-							discovered[nx][ny] = 1;
-						}
-
-						nx = (x - 1 + L) % L;
-						ny = y;
-						if (m_lattice[x][y] == m_lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[nx][y]) {
-							deq.push_back(std::make_tuple(nx, ny));
-							discovered[nx][ny] = 1;
-						}
-
-						if (flipCluster)
-							m_lattice[x][y] *= -1;
-						deq.pop_front();
-					}
-				}
-			}
-		}
-	}
 }
 
 

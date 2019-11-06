@@ -17,7 +17,26 @@ namespace magneto {
       std::vector<double> m_cached_exp_values;
       std::vector<std::future<IndexPairVectorReturn>> m_lattice_index_futures;
       std::vector<std::future<UniformRandomBufferReturn>> m_future_random_buffers;
-      const int m_J;
+      int m_J;
+   };
+
+   class SW {
+   public:
+      SW(const int J, const double T, const int L);
+      ~SW();
+      void run(LatticeType& lattice);
+
+   private:
+      std::vector<double> m_bond_north_buffer;
+      std::vector<double> m_bond_east_buffer;
+      std::vector<double> m_flip_buffer;
+
+      std::future<std::vector<double>> m_bond_north_future;
+      std::future<std::vector<double>> m_bond_east_future;
+      std::future<std::vector<double>> m_flip_future;
+
+      int m_J;
+      double m_T;
    };
 
    /// <summary>calculates all possible values of the exp-function

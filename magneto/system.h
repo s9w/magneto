@@ -13,7 +13,6 @@ namespace magneto {
 		IsingSystem(const int j, const double T, const int L);
 		IsingSystem(const int j, const double T, const std::filesystem::path& input_path);
 		IsingSystem(const int j, const std::filesystem::path& lattice_png_path, const std::filesystem::path& temp_png_path);
-		void wang_sweeps(const int n = 1);
 		[[nodiscard]] const LatticeType& get_lattice() const;
 		[[nodiscard]] LatticeType& get_lattice_nc();
 		size_t get_L() const;
