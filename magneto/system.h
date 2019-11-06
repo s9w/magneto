@@ -16,8 +16,6 @@ namespace magneto {
 	using LatticeType = LatticeTType<int>;
 	using LatticeTemps = LatticeTType<double>;
 
-	//using LatticeTType = std::vector<std::vector<double>>;
-
 	class IsingSystem {
 	public:
 		IsingSystem(const int j, const double T, const int L);
