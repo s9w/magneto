@@ -39,12 +39,17 @@ namespace magneto {
 		std::vector<double> m_cached_exp_values;
 	};
 
-   struct PropertySnapshot {
-      double energy;
-      double energy_squared;
+   struct PhysicalProperties {
+      double energy = 0.0;
+      double energy_squared = 0.0;
+      double magnetization = 0.0;
+      double magnetization_sq = 0.0;
    };
 
-   PropertySnapshot get_properties(const IsingSystem& system);
+   PhysicalProperties operator+(const PhysicalProperties& a, const PhysicalProperties& b);
+   PhysicalProperties operator/(const PhysicalProperties& a, const unsigned int d);
+
+   PhysicalProperties get_properties(const IsingSystem& system);
 
 
 	LatticeType get_randomized_system(const int L);
@@ -54,8 +59,8 @@ namespace magneto {
    /// <summary>Returns normalized energy (per size)</summary>
    double get_E(const LatticeType& grid);
 
-	/// <summary>Returns normalized energy squared</summary>
-   double get_E_squared(const LatticeType& grid);
+   /// <summary>Returns normalized absolute magnetization</summary>
+   double get_m_abs(const LatticeType& grid);
 
 	/// <summary>calculates all possible values of the exp-function
 	/// <para>The exponential function exp(-beta*(H2-H1)) is used extensively during the core loop 

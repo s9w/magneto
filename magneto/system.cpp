@@ -86,10 +86,31 @@ namespace {
 }
 
 
-magneto::PropertySnapshot magneto::get_properties(const IsingSystem& system){
+magneto::PhysicalProperties magneto::operator+(const PhysicalProperties& a, const PhysicalProperties& b){
+   PhysicalProperties sum_result(a);
+   sum_result.energy += b.energy;
+   sum_result.energy_squared += b.energy_squared;
+   sum_result.magnetization += b.magnetization;
+   sum_result.magnetization_sq += b.magnetization_sq;
+   return sum_result;
+}
+
+
+magneto::PhysicalProperties magneto::operator/(const PhysicalProperties& a, const unsigned int d){
+   PhysicalProperties div_result(a);
+   div_result.energy /= d;
+   div_result.energy_squared /= d;
+   div_result.magnetization /= d;
+   div_result.magnetization_sq /= d;
+   return div_result;
+}
+
+magneto::PhysicalProperties magneto::get_properties(const IsingSystem& system){
    const double energy = get_E(system.get_lattice());
-   const double energy_sq = get_E_squared(system.get_lattice());
-   return { energy, energy_sq };
+   const double energy_sq = energy * energy;
+   const double m = get_m_abs(system.get_lattice());
+   const double m_sq = m * m;
+   return { energy, energy_sq, m, m_sq };
 }
 
 magneto::LatticeType magneto::get_randomized_system(const int L){
@@ -131,15 +152,17 @@ double magneto::get_E(const LatticeType& grid){
    return E * 1.0 / (L * L);
 }
 
-double magneto::get_E_squared(const LatticeType& grid){
-	const int L = static_cast<int>(grid.size());
-	int E = 0;
-	for (int i = 0; i < L; ++i) {
-		for (int j = 0; j < L; ++j)
-			E += -grid[i][j] * (grid[i][(j + 1) % L] + grid[(i + 1) % L][j]);
-	}
-	return E * E* 1.0 / (L * L);
+
+double magneto::get_m_abs(const LatticeType& grid){
+   const int L = static_cast<int>(grid.size());
+   int m = 0;
+   for (int i = 0; i < L; ++i) {
+      for (int j = 0; j < L; ++j)
+         m += grid[i][j];
+   }
+   return std::abs(m) * 1.0 / (L * L);
 }
+
 
 void magneto::IsingSystem::metropolis_sweeps(
 	const IndexPairVector& lattice_indices,
@@ -153,7 +176,7 @@ void magneto::IsingSystem::metropolis_sweeps(
 
 void magneto::IsingSystem::wang_sweeps(const int n){
 	unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-	std::mt19937 rng = std::mt19937(seed);
+	std::mt19937_64 rng(seed);
 	std::uniform_real_distribution<double> dist_one(0, 1);
 	const double freezeProbability = 1.0 - exp(-2.0f * m_J / std::get<double>(m_T));
 
