@@ -72,15 +72,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LatticeAlgorithms.cpp" />
     <ClCompile Include="magneto.cpp" />
     <ClCompile Include="Output.cpp" />
     <ClCompile Include="ProgressIndicator.cpp" />
     <ClCompile Include="system.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LatticeAlgorithms.h" />
     <ClInclude Include="Output.h" />
     <ClInclude Include="ProgressIndicator.h" />
     <ClInclude Include="system.h" />
+    <ClInclude Include="types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,41 +1,28 @@
 #pragma once
 
 #include <filesystem>
-#include <vector>
 #include <random>
 #include <variant>
 #include <optional>
 
-using IndexPairVector = std::vector<std::pair<int, int>>;
+#include "types.h"
 
 namespace magneto {
-	class LatticeIndexRng;
-
-	template<class T>
-	using LatticeTType = std::vector<std::vector<T>>;
-	using LatticeType = LatticeTType<int>;
-	using LatticeTemps = LatticeTType<double>;
-
 	class IsingSystem {
 	public:
 		IsingSystem(const int j, const double T, const int L);
 		IsingSystem(const int j, const double T, const std::filesystem::path& input_path);
 		IsingSystem(const int j, const std::filesystem::path& lattice_png_path, const std::filesystem::path& temp_png_path);
-		void metropolis_sweeps(const IndexPairVector& lattice_indices, const std::vector<double>& random_buffer);
 		void wang_sweeps(const int n = 1);
 		[[nodiscard]] const LatticeType& get_lattice() const;
+		[[nodiscard]] LatticeType& get_lattice_nc();
 		size_t get_L() const;
 		std::optional<double> get_temp() const;
 
 	private:
-		void metropolis_sweeps_uniform_t(const IndexPairVector& lattice_indices, const std::vector<double>& random_buffer);
-		void metropolis_sweeps_variable_t(const IndexPairVector& lattice_indices, const std::vector<double>& random_buffer);
-
 		LatticeType m_lattice;
 		int m_J = 1;
-		std::variant<double, LatticeTemps> m_T;
-		std::vector<double> m_cached_exp_values;
-	};
+		std::variant<double, LatticeTemps> m_T;	};
 
    struct PhysicalProperties {
       double energy = 0.0;
@@ -60,12 +47,6 @@ namespace magneto {
    /// <summary>Returns normalized absolute magnetization</summary>
    double get_m_abs(const LatticeType& grid);
 
-	/// <summary>calculates all possible values of the exp-function
-	/// <para>The exponential function exp(-beta*(H2-H1)) is used extensively during the core loop 
-	/// of the metropolis algorithm. Luckily, because of the nature of the Ising model, there is 
-	/// only a finite amount of possible values for the parameter. In a 2D Ising model, there can 
-	/// only be the values [-8J,8J] for dH. Since the values will be stored in a vector, 
-	/// the parameter will be shifted to start at 0.</para>
-	/// </summary>
-	std::vector<double> get_cached_exp_values(const int J, const double T);
+	
+	
 }

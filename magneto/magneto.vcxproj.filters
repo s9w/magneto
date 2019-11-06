@@ -27,6 +27,9 @@
     <ClCompile Include="ProgressIndicator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LatticeAlgorithms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
@@ -36,6 +39,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ProgressIndicator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LatticeAlgorithms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
