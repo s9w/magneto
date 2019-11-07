@@ -20,7 +20,7 @@ namespace {
    }
 
 
-   magneto::UniformRandomBufferReturn get_random_buffer(const size_t buffer_size) {
+   std::vector<double> get_random_buffer(const size_t buffer_size) {
       const std::string thread_id = thread_id_to_string(std::this_thread::get_id());
       unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
       std::mt19937_64 rng(seed);
@@ -30,22 +30,11 @@ namespace {
       for (int i = 0; i < buffer_size; ++i)
          normal_random_vector.emplace_back(dist_one(rng));
       spdlog::get("basic_logger")->debug("get_random_buffer() done from thread {}", thread_id);
-      return { normal_random_vector, thread_id };
-   }
-
-   std::vector<double> get_random_buffer_simple(const size_t buffer_size) {
-      unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-      std::mt19937_64 rng(seed);
-      std::uniform_real_distribution <double > dist_one(0.0, 1.0);
-      std::vector<double> normal_random_vector;
-      normal_random_vector.reserve(buffer_size);
-      for (int i = 0; i < buffer_size; ++i)
-         normal_random_vector.emplace_back(dist_one(rng));
       return normal_random_vector;
    }
 
 
-   magneto::IndexPairVectorReturn get_lattice_indices(const size_t buffer_size, const int lattice_size) {
+   magneto::IndexPairVector get_lattice_indices(const size_t buffer_size, const int lattice_size) {
       const std::string thread_id = thread_id_to_string(std::this_thread::get_id());
       unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
       std::mt19937_64 rng(seed);
@@ -55,25 +44,12 @@ namespace {
       for (int i = 0; i < buffer_size; ++i)
          indices.emplace_back(dist_lattice(rng), dist_lattice(rng));
       spdlog::get("basic_logger")->debug("get_lattice_indices() done from thread {}", thread_id);
-      return { indices, thread_id };
+      return indices;
    }
 
 
    template <class T, class Tf, typename... Args>
    void assign_target_buffer_and_relaunch_future(
-      T& target_buffer,
-      std::future<magneto::ResultWithThreadId<T>>& future,
-      const Tf& thread_function,
-      Args... future_args
-   ) {
-      const auto fresult = future.get();
-      spdlog::get("basic_logger")->debug("fetched results and restarting. thread: {}", fresult.m_thread_id);
-      target_buffer = std::move(fresult.m_result);
-      future = std::async(std::launch::async, thread_function, future_args...);
-   }
-
-   template <class T, class Tf, typename... Args>
-   void assign_target_buffer_and_relaunch_future2(
       T& target_buffer,
       std::future<T>& future,
       const Tf& thread_function,
@@ -89,7 +65,7 @@ namespace {
    /// it's being waited until one is. The future is restarted at the end.</summary>
    template <class T, class Tf, typename... Args>
    void refill_target_buffer_from_futures(
-      std::vector<std::future<magneto::ResultWithThreadId<T>>>& futures,
+      Futures<T>& futures,
       T& target_buffer,
       const Tf& thread_function,
       Args... future_args
@@ -106,15 +82,17 @@ namespace {
       }
    }
 
+   template<class T>
+   void finish_futures(T& first_futures) {
+      for (auto& future : first_futures)
+         future.get();
+   }
 
-   template <class T, class Tf, typename... Args>
-   void refill_target_buffer_from_future(
-      std::future<T>& future,
-      T& target_buffer,
-      const Tf& thread_function,
-      Args... future_args
-   ) {
-      assign_target_buffer_and_relaunch_future2(target_buffer, future, thread_function, future_args...);
+   template <class T, class... Args>
+   void finish_futures(T& first_futures, Args&... args) {
+      for (auto& future : first_futures)
+         future.get();
+      finish_futures(args...);
    }
 
 } // namespace {}
@@ -125,11 +103,8 @@ magneto::Metropolis::Metropolis(const int J, const double T, const int L, const 
    , m_J(J)
 {
    const size_t random_buffer_size = L * L;
-
-   auto get_random_buffer_baked = [&] {return get_random_buffer(random_buffer_size); };
-   auto get_lattice_indices_baked = [&] {return get_lattice_indices(random_buffer_size, L); };
-   m_random_buffer = get_random_buffer_baked();
-   m_lattice_index_buffer = get_lattice_indices_baked();
+   m_random_buffer = get_random_buffer(random_buffer_size);
+   m_lattice_index_buffer = get_lattice_indices(random_buffer_size, L);
 
    m_future_random_buffers.reserve(max_rng_threads);
    m_lattice_index_futures.reserve(max_rng_threads);
@@ -140,12 +115,7 @@ magneto::Metropolis::Metropolis(const int J, const double T, const int L, const 
 }
 
 magneto::Metropolis::~Metropolis(){
-   // letting the future threads finish
-   spdlog::get("basic_logger")->info("Destructor: {} lattice_index_futures and {} future_random_buffers", m_lattice_index_futures.size(), m_future_random_buffers.size());
-   for (auto& future : m_lattice_index_futures)
-   	future.get();
-   for (auto& future : m_future_random_buffers)
-      future.get();
+   finish_futures(m_lattice_index_futures, m_future_random_buffers);
 }
 
 
@@ -182,23 +152,28 @@ std::vector<double> magneto::get_cached_exp_values(const int J, const double T) 
 }
 
 
-magneto::SW::SW(const int J, const double T, const int L)
+magneto::SW::SW(const int J, const double T, const int L, const int max_rng_threads)
    : m_J(J)
    , m_T(T)
 {
-   m_bond_north_buffer = get_random_buffer_simple(L*L);
-   m_bond_east_buffer = get_random_buffer_simple(L*L);
-   m_flip_buffer = get_random_buffer_simple(L*L);
-   m_bond_north_future = std::async(std::launch::async, get_random_buffer_simple, L*L);
-   m_bond_east_future = std::async(std::launch::async, get_random_buffer_simple, L*L);
-   m_flip_future = std::async(std::launch::async, get_random_buffer_simple, L*L);
+   m_bond_north_buffer = get_random_buffer(L * L);
+   m_bond_east_buffer = get_random_buffer(L * L);
+   m_flip_buffer = get_random_buffer(L * L);
+
+   m_bond_north_futures.reserve(max_rng_threads);
+   m_bond_east_futures.reserve(max_rng_threads);
+   m_flip_futures.reserve(max_rng_threads);
+   const size_t random_buffer_size = L * L;
+   for (int i = 0; i < max_rng_threads; ++i) {
+      m_bond_north_futures.emplace_back(std::async(std::launch::async, get_random_buffer, random_buffer_size));
+      m_bond_east_futures.emplace_back(std::async(std::launch::async, get_random_buffer, random_buffer_size));
+      m_flip_futures.emplace_back(std::async(std::launch::async, get_random_buffer, random_buffer_size));
+   }
 }
 
 
 magneto::SW::~SW(){
-   m_bond_north_future.get();
-   m_bond_east_future.get();
-   m_flip_future.get();
+   finish_futures(m_bond_north_futures, m_bond_east_futures, m_flip_futures);
 }
 
 
@@ -274,7 +249,7 @@ void magneto::SW::run(LatticeType& lattice){
       }
    }
 
-   refill_target_buffer_from_future(m_bond_north_future, m_bond_north_buffer, get_random_buffer_simple, L*L);
-   refill_target_buffer_from_future(m_bond_east_future, m_bond_east_buffer, get_random_buffer_simple, L*L);
-   refill_target_buffer_from_future(m_flip_future, m_flip_buffer, get_random_buffer_simple, L*L);
+   refill_target_buffer_from_futures(m_bond_north_futures, m_bond_north_buffer, get_random_buffer, L * L);
+   refill_target_buffer_from_futures(m_bond_east_futures, m_bond_east_buffer, get_random_buffer, L * L);
+   refill_target_buffer_from_futures(m_flip_futures, m_flip_buffer, get_random_buffer, L * L);
 }

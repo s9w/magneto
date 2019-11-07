@@ -144,7 +144,7 @@ void do_movie(const double t, const int L, const int J, const int n) {
    std::vector<magneto::PhysicalProperties> properties;
    
    magneto::Output writer(L, 1);
-   magneto::Metropolis metropolis_alg(J, t, L, 2);
+   magneto::Metropolis metropolis_alg(J, t, L);
    for (int i = 1; i < n; ++i) {
    	writer.photograph(system.get_lattice());
       properties.emplace_back(get_properties(system));
@@ -164,12 +164,11 @@ int main() {
    set_console_cursor_visibility(false);
 
    auto t0 = std::chrono::system_clock::now();
-   //do_physics(0.01, 2.0*get_Tc(), 15, 200, 50, 100, "results.txt");
-   do_physics(0.01, 2.0*get_Tc(), 15, 300, 50, 200, "results.txt");
+   //do_physics(0.01, 2.0*get_Tc(), 15, 300, 50, 200, "results.txt");
    auto t1 = std::chrono::system_clock::now();
    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count(); // ~3000
    logger->info("runtime: {}", ms);
-   //do_movie(2.26, 500, 1, 30*10);
+   do_movie(2.26, 100, 1, 10);
 
 	return 0;
 }
