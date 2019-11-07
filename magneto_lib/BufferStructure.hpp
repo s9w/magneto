@@ -49,20 +49,27 @@ const T& magneto::BufferStructure<T>::get_buffer() const {
 
 
 template<class T>
+void magneto::BufferStructure<T>::move_future_results_and_restart(std::future<T>& future) {
+   // fill the buffer with the result of the future
+   m_buffer = std::move(future.get());
+
+   // restart the future to start computing the next one
+   future = std::async(std::launch::async, m_buffer_filler);
+}
+
+
+template<class T>
 void magneto::BufferStructure<T>::refill() {
    // Find a future that is already finished, or wait for one to finish.
    // future.is_ready() is ironically not yet in the standard, but it is in MSVC... and pretty neat
-   while (true) {
-      for (auto& future : m_futures) {
-         if (!future._Is_ready())
-            continue;
 
-         // fill the buffer with the result of the future
-         m_buffer = std::move(future.get());
+   for (auto& future : m_futures) {
+      if (!future._Is_ready())
+         continue;
 
-         // restart the future to start computing the next one
-         future = std::async(std::launch::async, m_buffer_filler);
-         return;
-      }
+      move_future_results_and_restart(future);
+      return;
    }
+   auto& future = m_futures.front();
+   move_future_results_and_restart(future);
 }

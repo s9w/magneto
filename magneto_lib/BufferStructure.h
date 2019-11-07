@@ -20,6 +20,8 @@ namespace magneto {
       void refill();
 
    private:
+      void move_future_results_and_restart(std::future<T>& future);
+
       T m_buffer;
       std::vector<std::future<T>> m_futures;
       std::function<T()> m_buffer_filler;
