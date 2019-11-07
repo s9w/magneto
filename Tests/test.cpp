@@ -82,6 +82,9 @@ TEST_F(Jobs, compare_job_1) {
    target.m_physics_config.m_format = "E: {E}";
    target.m_physics_config.m_mode = magneto::PhysicsMode::AtTheEnd;
    EXPECT_TRUE(job1 == target);
+
+   target.m_temp = 2.1;
+   EXPECT_FALSE(job1 == target);
 }
 
 TEST_F(Jobs, compare_job_2) {

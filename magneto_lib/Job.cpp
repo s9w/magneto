@@ -137,7 +137,7 @@ bool magneto::operator==(const Job& a, const Job& b) {
    if (a.m_temp.index() != b.m_temp.index())
       return false;
    if (std::holds_alternative<double>(a.m_temp)) {
-      if (!is_equal(std::get<double>(a.m_temp), std::get<double>(a.m_temp)))
+      if (!is_equal(std::get<double>(a.m_temp), std::get<double>(b.m_temp)))
          return false;
    }
    else {
