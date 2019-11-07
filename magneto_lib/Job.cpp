@@ -25,7 +25,6 @@ void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
    }
 
    if (j.contains("temp")) {
-      auto x = j.at("temp");
       if (j.at("temp").is_number_float())
          job.m_temp = j.at("temp").get<double>();
       else {
@@ -69,12 +68,15 @@ void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
    }
 
    if (j.contains("image_path")) {
-      if (std::holds_alternative<Movie>(job.m_image_mode))
-         std::get<Movie>(job.m_image_mode).m_path = j.at("image_path").get<std::string>();
-      else if (std::holds_alternative<Intervals>(job.m_image_mode))
-         std::get<Intervals>(job.m_image_mode).m_path = j.at("image_path").get<std::string>();
-      else if (std::holds_alternative<EndImage>(job.m_image_mode))
-         std::get<Intervals>(job.m_image_mode).m_path = j.at("image_path").get<std::string>();
+      struct V{
+         V(const std::string& image_path) : m_image_path(image_path) {};
+         std::string m_image_path;
+         void operator()(None& none) { };
+         void operator()(Movie& movie) { movie.m_path = m_image_path; };
+         void operator()(Intervals& movie) { movie.m_path = m_image_path; };
+         void operator()(EndImage& movie) { movie.m_path = m_image_path; };
+      };
+      std::visit(V(j.at("image_path").get<std::string>()), job.m_image_mode);
    }
 
    if (j.contains("physics_path"))
@@ -83,8 +85,7 @@ void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
 
 magneto::Job magneto::get_parsed_job(const std::string& file_contents){
    nlohmann::json json = nlohmann::json::parse(file_contents);
-   Job job = json.get<Job>();
-   return job;
+   return json.get<Job>();
 }
 
 
@@ -132,7 +133,7 @@ bool magneto::operator==(const Job& a, const Job& b) {
       return false;
    }
 
-   // temps extra because of the doubles
+   // Handle temperatures separately because of the floating point comparisons
    if (a.m_temp.index() != b.m_temp.index())
       return false;
    if (std::holds_alternative<double>(a.m_temp)) {
