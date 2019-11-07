@@ -5,20 +5,28 @@ VisualStudioVersion = 16.0.29411.138
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "magneto", "magneto\magneto.vcxproj", "{320C17E5-0B61-48D4-831D-841F559671E7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "magneto_lib", "magneto_lib\magneto_lib.vcxproj", "{47C7EF17-F8E9-4161-82F2-4EE5EF7A7CFB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tests", "Tests\Tests.vcxproj", "{54CDFFB0-EE98-43F1-9527-813000A84E06}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
-		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{320C17E5-0B61-48D4-831D-841F559671E7}.Debug|x64.ActiveCfg = Debug|x64
 		{320C17E5-0B61-48D4-831D-841F559671E7}.Debug|x64.Build.0 = Debug|x64
-		{320C17E5-0B61-48D4-831D-841F559671E7}.Debug|x86.ActiveCfg = Debug|x64
-		{320C17E5-0B61-48D4-831D-841F559671E7}.Release|x64.ActiveCfg = Release|x64
-		{320C17E5-0B61-48D4-831D-841F559671E7}.Release|x64.Build.0 = Release|x64
-		{320C17E5-0B61-48D4-831D-841F559671E7}.Release|x86.ActiveCfg = Release|x64
+		{320C17E5-0B61-48D4-831D-841F559671E7}.Release|x64.ActiveCfg = Debug|x64
+		{320C17E5-0B61-48D4-831D-841F559671E7}.Release|x64.Build.0 = Debug|x64
+		{47C7EF17-F8E9-4161-82F2-4EE5EF7A7CFB}.Debug|x64.ActiveCfg = Debug|x64
+		{47C7EF17-F8E9-4161-82F2-4EE5EF7A7CFB}.Debug|x64.Build.0 = Debug|x64
+		{47C7EF17-F8E9-4161-82F2-4EE5EF7A7CFB}.Release|x64.ActiveCfg = Debug|x64
+		{47C7EF17-F8E9-4161-82F2-4EE5EF7A7CFB}.Release|x64.Build.0 = Debug|x64
+		{54CDFFB0-EE98-43F1-9527-813000A84E06}.Debug|x64.ActiveCfg = Debug|x64
+		{54CDFFB0-EE98-43F1-9527-813000A84E06}.Debug|x64.Build.0 = Debug|x64
+		{54CDFFB0-EE98-43F1-9527-813000A84E06}.Release|x64.ActiveCfg = Debug|x64
+		{54CDFFB0-EE98-43F1-9527-813000A84E06}.Release|x64.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
