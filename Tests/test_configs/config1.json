@@ -1,0 +1,11 @@
+{
+  "spin_start": "random",
+  "temp": 2.0,
+  "start_runs": 50,
+  "L": 500,
+  "iterations": 300,
+  "algorithm": "metropolis",
+  "image_mode": "movie",
+  "image_path": "movie.mp4",
+  "physics_path":  "data.txt"
+}

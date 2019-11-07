@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="test.cpp" />
+    <ClCompile Include="pch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="test_configs">
+      <UniqueIdentifier>{585b88fa-9092-4988-afdf-b4ff610a0cb0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="test_configs\config1.json">
+      <Filter>test_configs</Filter>
+    </None>
+    <None Include="test_configs\config2.json">
+      <Filter>test_configs</Filter>
+    </None>
+    <None Include="test_configs\config3.json">
+      <Filter>test_configs</Filter>
+    </None>
+    <None Include="test_configs\config_empty.json">
+      <Filter>test_configs</Filter>
+    </None>
+  </ItemGroup>
+</Project>

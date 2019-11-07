@@ -1,0 +1,13 @@
+{
+  "spin_start": "start.png",
+  "temp": "temp_input.png",
+  "image_temp_min": 0,
+  "image_temp_max": 7,
+  "start_runs": 50,
+  "L": 500,
+  "iterations": 300,
+  "algorithm": "metropolis",
+  "image_mode": "movie",
+  "image_path": "movie.mp4",
+  "physics_path": "data.txt"
+}

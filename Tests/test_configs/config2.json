@@ -1,0 +1,14 @@
+{
+  "spin_start": "ones",
+  "temp": "temp_input.png",
+  "image_temp_min": 1.0,
+  "image_temp_max": 6.0,
+  "start_runs": 50,
+  "L": 500,
+  "iterations": 300,
+  "algorithm": "metropolis",
+  "image_mode": "intervals",
+  "img_intervals": 10,
+  "image_path": "img.png",
+  "physics_path": "data.txt"
+}
