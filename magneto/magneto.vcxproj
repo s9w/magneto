@@ -79,6 +79,8 @@
     <ClCompile Include="system.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BufferStructure.h" />
+    <ClInclude Include="BufferStructure.hpp" />
     <ClInclude Include="LatticeAlgorithms.h" />
     <ClInclude Include="Output.h" />
     <ClInclude Include="ProgressIndicator.h" />

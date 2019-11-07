@@ -1,42 +1,32 @@
 #pragma once
 
 #include "types.h"
-#include <future>
+#include "BufferStructure.h"
 
 
 namespace magneto {
-   template<class T>
-   using Futures = std::vector<std::future<T>>;
 
    class Metropolis {
    public:
       Metropolis(const int J, const double T, const int L, const int max_rng_threads = 2);
-      ~Metropolis();
       void run(LatticeType& lattice);
 
    private:
-      IndexPairVector m_lattice_index_buffer;
-      std::vector<double> m_random_buffer;
+      BufferStructure<IndexPairVector> m_lattice_index_buffer;
+      BufferStructure<std::vector<double>> m_random_buffer;
       std::vector<double> m_cached_exp_values;
-      Futures<IndexPairVector> m_lattice_index_futures;
-      Futures<std::vector<double>> m_future_random_buffers;
       int m_J;
    };
 
    class SW {
    public:
       SW(const int J, const double T, const int L, const int max_rng_threads = 1);
-      ~SW();
       void run(LatticeType& lattice);
 
    private:
-      std::vector<double> m_bond_north_buffer;
-      std::vector<double> m_bond_east_buffer;
-      std::vector<double> m_flip_buffer;
-
-      Futures<std::vector<double>> m_bond_north_futures;
-      Futures<std::vector<double>> m_bond_east_futures;
-      Futures<std::vector<double>> m_flip_futures;
+      BufferStructure<std::vector<double>> m_bond_north_buffer;
+      BufferStructure<std::vector<double>> m_bond_east_buffer;
+      BufferStructure<std::vector<double>> m_flip_buffer;
 
       int m_J;
       double m_T;
