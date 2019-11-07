@@ -71,8 +71,8 @@ PhysicsResult get_physical_results(const double T, const int n, const int warmup
 std::vector<double> get_temps(const double tmin, const double tmax, const int n) {
    std::vector<double> temps;
    double temperature = tmin;
-   const double temperature_step = (tmax - tmin) / n;
-   for (int i = 0; i < n + 1; ++i) {
+   const double temperature_step = (tmax - tmin) / (n-1);
+   for (int i = 0; i < n; ++i) {
       temps.emplace_back(temperature);
       temperature += temperature_step;
    }
