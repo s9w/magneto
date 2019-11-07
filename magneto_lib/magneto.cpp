@@ -10,12 +10,9 @@
 #include <fstream>
 #include <numeric>
 
-#include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/async.h"
-
-
-std::shared_ptr<spdlog::logger> logger;
 
 
 /// <summary>Self-explanatory, but doesn't seem to work on powershell</summary>
@@ -65,7 +62,7 @@ PhysicsResult get_physical_results(const double T, const int n, const int warmup
    const double m_sq_mean = mean_properties.magnetization_sq;
    const double cv = (e_sq_mean - e_mean * e_mean) * L * L / (T * T);
    const double chi = (m_sq_mean - m_mean * m_mean) * L * L / T;
-   logger->info("{}() finished", __FUNCTION__);
+   magneto::get_logger()->info("{}() finished", __FUNCTION__);
    return {T, e_mean, cv, m_mean, chi };
 }
 
@@ -92,7 +89,7 @@ double get_Tc() {
 void write_results(const std::vector<PhysicsResult>& results, const std::filesystem::path& path) {
    std::ofstream myfile(path);
    if (!myfile.is_open()) {
-      logger->error("Couldn't open file {} for writing result.", path.string());
+      magneto::get_logger()->error("Couldn't open file {} for writing result.", path.string());
       return;
    }
 
@@ -110,19 +107,19 @@ void do_physics(
    const std::filesystem::path& path
 ) {
    if (tmin < 0) {
-      logger->error("Negative temperature: Tmin={}", tmin);
+      magneto::get_logger()->error("Negative temperature: Tmin={}", tmin);
       return;
    }
    if (tmax < tmin) {
-      logger->error("TMax < TMin");
+      magneto::get_logger()->error("TMax < TMin");
       return;
    }
    if (steps < 1) {
-      logger->error("Too few temperature steps ({})", steps);
+      magneto::get_logger()->error("Too few temperature steps ({})", steps);
       return;
    }
    if (L < 1) {
-      logger->error("System size invalid ({})", L);
+      magneto::get_logger()->error("System size invalid ({})", L);
       return;
    }
    const auto temps = get_temps(tmin, tmax, steps);
@@ -159,10 +156,32 @@ void do_movie(const double t, const int L, const int J, const int n) {
    writer.make_movie();
 }
 
+std::shared_ptr<spdlog::logger> magneto::get_logger(std::vector<spdlog::sink_ptr> sinks) {
+   const std::string logger_name = "magneto_logger";
+   auto logger = spdlog::get(logger_name);
+   if (!logger){
+      if (!sinks.empty()){
+         logger = std::make_shared<spdlog::logger>(logger_name,
+            std::begin(sinks),
+            std::end(sinks));
+         spdlog::register_logger(logger);
+      }
+      else{
+         std::vector<spdlog::sink_ptr> sinks;
+         sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+         sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt", true));
+         logger = std::make_shared<spdlog::logger>(logger_name,
+            std::begin(sinks),
+            std::end(sinks));
+         spdlog::register_logger(logger);
+      }
+   }
+   logger->set_level(spdlog::level::info);
+   return logger;
+}
+
 
 void magneto::start() {
-   logger = spdlog::basic_logger_mt< spdlog::async_factory>("basic_logger", "log.txt", true);
-   logger->set_level(spdlog::level::info);
    set_console_cursor_visibility(false);
 
    auto t0 = std::chrono::system_clock::now();
@@ -170,5 +189,5 @@ void magneto::start() {
    do_movie(2.26, 800, 1, 30 * 5);
    auto t1 = std::chrono::system_clock::now();
    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count(); // ~3000
-   logger->info("runtime: {} ms", ms);
+   //logger->info("runtime: {} ms", ms);
 }
