@@ -24,23 +24,23 @@ namespace magneto {
 
    struct PhysicsConfig {
       std::filesystem::path m_outputfile = "magneto_results.txt";
-      std::string m_format = "E: {E}";
+      std::string m_format = "T: {T:<4.3f},\tEnergy: {E:<4.3f},\tcv: {cv:<4.3f}, mag: {M:<4.3f}, chi: {chi:<4.3f}";
    };
    
 
    struct Job {
-      SpinStartMode m_spin_start_mode;
+      SpinStartMode m_spin_start_mode = SpinStartMode::Random;
       std::filesystem::path m_spin_start_image_path;
       TempStartMode m_temp_mode = TempStartMode::Single;
 
-      double m_t_single;
+      double m_t_single = 2.26;
 
       // this for image temp start and many temps
-      double m_t_min = 1.0;
-      double m_t_max = 5.0;
+      double m_t_min = 2.0;
+      double m_t_max = 2.5;
 
       // this only for many temps
-      unsigned int m_temp_steps = 10;
+      unsigned int m_temp_steps = 3;
 
       // How many Swendsen-Wang runs before anything is being recorded/computed
       unsigned int m_start_runs = 0;
