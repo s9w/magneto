@@ -164,6 +164,7 @@ void run_job(const magneto::Job& job) {
 
 
 void magneto::start() {
+   get_logger();
    set_console_cursor_visibility(false);
 
    const std::filesystem::path default_config_path = "magneto_config.json";
