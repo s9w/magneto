@@ -21,7 +21,8 @@ namespace magneto {
 	private:
 		LatticeType m_lattice;
 		int m_J = 1;
-		std::variant<double, LatticeTemps> m_T;	};
+		std::variant<double, LatticeTemps> m_T;
+   };
 
    struct PhysicalProperties {
       double energy = 0.0;
@@ -33,9 +34,6 @@ namespace magneto {
 
    PhysicalProperties get_properties(const IsingSystem& system);
 
-
-	LatticeType get_randomized_system(const int L);
-	LatticeType get_empty_system(const int L);
 	int get_dE(const LatticeType& grid, int i, int j);
 
    /// <summary>Returns normalized energy (per size)</summary>

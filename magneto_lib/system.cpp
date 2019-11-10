@@ -75,6 +75,25 @@ namespace {
 		stbi_image_free(data);
 		return temps;
 	}
+
+
+   magneto::LatticeType get_randomized_system(const int L) {
+      unsigned seed1 = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+      std::default_random_engine generator(seed1);
+      std::uniform_int_distribution <int> dist(0, 1);
+      magneto::LatticeType grid(L, std::vector<int>(L));
+      for (int i = 0; i < L; ++i) {
+         for (int j = 0; j < L; ++j) {
+            grid[i][j] = dist(generator) * 2 - 1;
+         }
+      }
+      return grid;
+   }
+
+
+   magneto::LatticeType get_empty_system(const int L) {
+      return magneto::LatticeType(L, std::vector<int>(L, -1));
+   }
 }
 
 
@@ -99,23 +118,6 @@ magneto::PhysicalProperties magneto::get_properties(const IsingSystem& system){
    return { energy, m };
 }
 
-magneto::LatticeType magneto::get_randomized_system(const int L){
-	unsigned seed1 = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-	std::default_random_engine generator(seed1);
-	std::uniform_int_distribution <int> dist(0, 1);
-	LatticeType grid(L, std::vector<int>(L));
-	for (int i = 0; i < L; ++i) {
-		for (int j = 0; j < L; ++j) {
-			grid[i][j] = dist(generator) * 2 - 1;
-		}
-	}
-	return grid;
-}
-
-
-magneto::LatticeType magneto::get_empty_system(const int L){
-	return LatticeType(L, std::vector<int>(L, -1));
-}
 
 __declspec(noinline)
 int magneto::get_dE(const LatticeType& grid, int i, int j){
