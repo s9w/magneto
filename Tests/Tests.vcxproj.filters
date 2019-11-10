@@ -25,5 +25,6 @@
     <None Include="test_configs\config_empty.json">
       <Filter>test_configs</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
