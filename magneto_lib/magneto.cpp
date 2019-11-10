@@ -72,12 +72,6 @@ std::vector<double> get_temps(const double tmin, const double tmax, const int n)
 }
 
 
-/// <summary>Returns theoretical value for critical temperature in 2D Ising model</summary>
-double get_Tc() {
-   return 2.0 / (log(1.0 + sqrt(2.0)));
-}
-
-
 void write_results(const std::vector<magneto::PhysicsResult>& results, const magneto::PhysicsConfig& physics_config) {
    std::string file_content;
 
