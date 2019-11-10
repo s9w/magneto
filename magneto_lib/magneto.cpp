@@ -7,6 +7,7 @@
 #include "windows.h"
 #include "LatticeAlgorithms.h"
 #include "file_tools.h"
+#include "physics_tools.h"
 
 #include <execution>
 #include <sstream>
@@ -27,67 +28,8 @@ void set_console_cursor_visibility(bool visibility) {
 }
 
 
-struct PhysicsResult {
-   double temp;
-   double energy;
-   double cv;
-   double magnetization;
-   double chi;
-};
-
-
-template <class T>
-T get_mean(const std::vector<T>& values) {
-   const T sum = std::accumulate(values.cbegin(), values.cend(), T());
-   return sum / static_cast<int>(values.size());
-}
-
-
-template <class T>
-T get_squared_mean(const std::vector<T>& values) {
-   const auto& square_op = [](const T init, const T elem) {
-      return init + elem * elem;
-   };
-   const T sum = std::accumulate(values.cbegin(), values.cend(), T(), square_op);
-   return sum / static_cast<int>(values.size());
-}
-
-
-double get_variance(const std::vector<double>& values) {
-   const double mean = get_mean(values);
-   return get_squared_mean(values) - mean * mean;
-}
-
-
-std::vector<double> get_energies(const std::vector<magneto::PhysicalProperties>& properties) {
-   std::vector<double> energies;
-   energies.reserve(properties.size());
-   for (const magneto::PhysicalProperties& property : properties)
-      energies.emplace_back(property.energy);
-   return energies;
-}
-
-
-std::vector<double> get_mags(const std::vector<magneto::PhysicalProperties>& properties) {
-   std::vector<double> energies;
-   energies.reserve(properties.size());
-   for (const magneto::PhysicalProperties& property : properties)
-      energies.emplace_back(property.magnetization);
-   return energies;
-}
-
-
-double get_energy_variance(const std::vector<magneto::PhysicalProperties>& properties) {
-   return get_variance(get_energies(properties));
-}
-
-double get_mag_variance(const std::vector<magneto::PhysicalProperties>& properties) {
-   return get_variance(get_mags(properties));
-}
-
-
 template<class TAlg, class TImager>
-PhysicsResult get_physical_results(const double T, const magneto::Job& job) {
+magneto::PhysicsResult get_physical_results(const double T, const magneto::Job& job) {
    spdlog::get("magneto_logger")->info("Starting computations for T={:<4.3f}, L={}", T, job.m_L);
    const int J = 1;
 	magneto::IsingSystem system(J, T, job.m_L);
@@ -112,13 +54,8 @@ PhysicsResult get_physical_results(const double T, const magneto::Job& job) {
    image_writer.end_actions();
 
    // compute results
-   const magneto::PhysicalProperties mean_properties = get_mean(properties);
-   const double e_mean = mean_properties.energy;
-   const double m_mean = mean_properties.magnetization;
-   const double cv = get_energy_variance(properties) * job.m_L * job.m_L / (T * T);
-   const double chi = get_mag_variance(properties) * job.m_L * job.m_L / T;
    magneto::get_logger()->info("Finished computations for T={:<4.3f}, L={}", T, job.m_L);
-   return {T, e_mean, cv, m_mean, chi };
+   return get_physical_results(properties, job.m_L, T);
 }
 
 
@@ -141,10 +78,10 @@ double get_Tc() {
 }
 
 
-void write_results(const std::vector<PhysicsResult>& results, const magneto::PhysicsConfig& physics_config) {
+void write_results(const std::vector<magneto::PhysicsResult>& results, const magneto::PhysicsConfig& physics_config) {
    std::string file_content;
 
-   for (const PhysicsResult& result : results) {
+   for (const magneto::PhysicsResult& result : results) {
       try {
          file_content += fmt::format(physics_config.m_format + "\n"
             , fmt::arg("T", result.temp)
@@ -190,7 +127,7 @@ std::shared_ptr<spdlog::logger> magneto::get_logger(std::vector<spdlog::sink_ptr
 
 template<class TAlg, class TImager>
 void run_job(const std::vector<double>& temps, const magneto::Job& job) {
-   std::vector<PhysicsResult> results(temps.size());
+   std::vector<magneto::PhysicsResult> results(temps.size());
    std::transform(
       std::execution::par_unseq,
       std::cbegin(temps),
