@@ -105,7 +105,6 @@ void magneto::MovieWriter::end_actions(){
 void magneto::MovieWriter::make_movie() const{
    if (m_mode.m_mode == ImageOrMovie::None)
       return;
-   //if(m_mode)
 	const std::string ffmpeg_path = "ffmpeg.exe";
 	const std::string cmd = ffmpeg_path + fmt::format(" -y -hide_banner -loglevel panic -framerate {} -i {}\\image_%d.png -c:v libx264 {}", m_mode.m_fps, m_temp_directory_name, m_output_filename.string());
 	system(cmd.c_str());
