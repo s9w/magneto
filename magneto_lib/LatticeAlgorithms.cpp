@@ -30,7 +30,7 @@ namespace {
          normal_random_vector.reserve(m_buffer_size);
          for (int i = 0; i < m_buffer_size; ++i)
             normal_random_vector.emplace_back(dist_one(rng));
-         spdlog::get("basic_logger")->debug("get_random_buffer() done from thread {}", thread_id);
+         spdlog::get("magneto_logger")->debug("get_random_buffer() done from thread {}", thread_id);
          return normal_random_vector;
       }
       size_t m_buffer_size;
@@ -48,7 +48,7 @@ namespace {
          indices.reserve(m_buffer_size);
          for (int i = 0; i < m_buffer_size; ++i)
             indices.emplace_back(dist_lattice(rng), dist_lattice(rng));
-         spdlog::get("basic_logger")->debug("get_lattice_indices() done from thread {}", thread_id);
+         spdlog::get("magneto_logger")->debug("get_lattice_indices() done from thread {}", thread_id);
          return indices;
       }
       size_t m_buffer_size;

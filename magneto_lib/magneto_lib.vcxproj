@@ -14,6 +14,7 @@
     <ClInclude Include="BufferStructure.h" />
     <ClInclude Include="BufferStructure.hpp" />
     <ClInclude Include="export_macro.h" />
+    <ClInclude Include="file_tools.h" />
     <ClInclude Include="Job.h" />
     <ClInclude Include="LatticeAlgorithms.h" />
     <ClInclude Include="magneto.h" />
@@ -23,6 +24,7 @@
     <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="file_tools.cpp" />
     <ClCompile Include="Job.cpp" />
     <ClCompile Include="LatticeAlgorithms.cpp" />
     <ClCompile Include="magneto.cpp" />

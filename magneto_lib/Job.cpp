@@ -1,6 +1,7 @@
 #include "Job.h"
-
 #include "nlohmann/json.hpp"
+#include "spdlog/spdlog.h"
+#include "file_tools.h"
 
 namespace {
    bool is_equal(double a, double b) {
@@ -8,79 +9,64 @@ namespace {
       return fabs(a - b) < tol;
    }
 
-} // namespace {}
 
-
-void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
-   // oh the joys of parsing json
-
-   if (j.contains("spin_start")) {
-      std::string spin_start = j.at("spin_start").get<std::string>();
-      if (spin_start == "random")
-         job.m_spinstart = RandomSpinStart();
-      else if (spin_start == "ones")
-         job.m_spinstart = OneSpinStart();
-      else
-         job.m_spinstart = ImageSpinStart{ spin_start };
-   }
-
-   if (j.contains("temp")) {
-      if (j.at("temp").is_number_float())
-         job.m_temp = j.at("temp").get<double>();
+   bool has_ending(std::string const& fullString, std::string const& ending) {
+      if (fullString.length() >= ending.length()) {
+         return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
+      }
       else {
-         job.m_temp = ImageTempStart{ j.at("temp").get<std::string>() };
+         return false;
       }
    }
 
-   if (j.contains("image_temp_min")) 
-      j.at("image_temp_min").get_to(std::get<ImageTempStart>(job.m_temp).t_min);
-   if (j.contains("image_temp_max"))
-      j.at("image_temp_max").get_to(std::get<ImageTempStart>(job.m_temp).t_max);
 
-   if (j.contains("start_runs"))
-      j.at("start_runs").get_to(job.m_start_runs);
-   if (j.contains("L"))
-      j.at("L").get_to(job.m_L);
-   if (j.contains("iterations"))
-      j.at("iterations").get_to(job.m_n);
-
-   if (j.contains("algorithm")) {
-      if (j.at("algorithm").get<std::string>() == "metropolis")
-         job.m_algorithm = Algorithm::Metropolis;
-      else if (j.at("algorithm").get<std::string>() == "SW")
-         job.m_algorithm = Algorithm::SW;
+   template<class T>
+   void set_enum_from_key(const nlohmann::json& j, T& target_enum, const char* key, const std::vector<std::string>& associations) {
+      if (!j.contains(key))
+         return;
+      std::string value = j.at(key).get<std::string>();
+      for (int i = 0; i < associations.size(); ++i) {
+         if(!(associations[i] == value))
+            continue;
+         target_enum = static_cast<T>(i);
+         return;
+      }
+      spdlog::get("magneto_logger")->warn("Value {} invalid for config file setting {}.", value, key);
    }
 
-   if (j.contains("image_mode")) {
-      if (j.at("image_mode").get<std::string>() == "none")
-         job.m_image_mode = None();
-      else if (j.at("image_mode").get<std::string>() == "movie")
-         job.m_image_mode = Movie();
-      else if (j.at("image_mode").get<std::string>() == "intervals")
-         job.m_image_mode = Intervals();
-      else if (j.at("image_mode").get<std::string>() == "end")
-         job.m_image_mode = EndImage();
+
+   template<class T>
+   void write_value_from_json(const nlohmann::json& j, const char* key, T& target) {
+      if (j.contains(key))
+         j.at(key).get_to(target);
    }
 
-   if (j.contains("img_intervals")) {
-      if (std::holds_alternative<Intervals>(job.m_image_mode))
-         j.at("img_intervals").get_to(std::get<Intervals>(job.m_image_mode).m_between);
+   template<>
+   void write_value_from_json(const nlohmann::json& j, const char* key, std::filesystem::path& target) {
+      if (j.contains(key))
+         target = j.at(key).get<std::string>();
    }
 
-   if (j.contains("image_path")) {
-      struct V{
-         V(const std::string& image_path) : m_image_path(image_path) {};
-         std::string m_image_path;
-         void operator()(None& none) { };
-         void operator()(Movie& movie) { movie.m_path = m_image_path; };
-         void operator()(Intervals& movie) { movie.m_path = m_image_path; };
-         void operator()(EndImage& movie) { movie.m_path = m_image_path; };
-      };
-      std::visit(V(j.at("image_path").get<std::string>()), job.m_image_mode);
-   }
+} // namespace {}
 
-   if (j.contains("physics_path"))
-      job.m_physics_config.m_outputfile = j.at("physics_path").get<std::string>();
+void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
+   set_enum_from_key(j, job.m_spin_start_mode, "spin_start", {"random", "ones", "image"});
+   set_enum_from_key(j, job.m_temp_mode, "temp", { "single", "range", "image" });
+   set_enum_from_key(j, job.m_algorithm, "algorithm", { "metropolis", "SW" });
+   set_enum_from_key(j, job.m_image_mode.m_mode, "image_output_mode", { "none", "endimage", "intervals", "movie" });
+   write_value_from_json(j, "t_min", job.m_t_min);
+   write_value_from_json(j, "t_max", job.m_t_max);
+   write_value_from_json(j, "t", job.m_t_single);
+   write_value_from_json(j, "t_steps", job.m_temp_steps);
+   write_value_from_json(j, "start_runs", job.m_start_runs);
+   write_value_from_json(j, "L", job.m_L);
+   write_value_from_json(j, "iterations", job.m_n);
+   write_value_from_json(j, "spin_start_image_path", job.m_spin_start_image_path);
+   write_value_from_json(j, "image_intervals", job.m_image_mode.m_intervals);
+   write_value_from_json(j, "image_path", job.m_image_mode.m_path);
+   write_value_from_json(j, "fps", job.m_image_mode.m_fps);
+   write_value_from_json(j, "physics_path", job.m_physics_config.m_outputfile);
+   write_value_from_json(j, "physics_format", job.m_physics_config.m_format);
 }
 
 magneto::Job magneto::get_parsed_job(const std::string& file_contents){
@@ -89,60 +75,41 @@ magneto::Job magneto::get_parsed_job(const std::string& file_contents){
 }
 
 
-bool magneto::operator==(const ImageSpinStart& a, const ImageSpinStart& b) {
-   return a.m_path == b.m_path;
-}
-bool magneto::operator==(const RandomSpinStart& a, const RandomSpinStart& b) {
-   return true;
-}
-bool magneto::operator==(const OneSpinStart& a, const OneSpinStart& b) {
-   return true;
-}
-bool magneto::operator==(const None& a, const None& b) {
-   return true;
-}
-bool magneto::operator==(const Movie& a, const Movie& b) {
-   return std::tie(a.m_path, a.m_fps) == std::tie(b.m_path, b.m_fps);
-}
-bool magneto::operator==(const Intervals& a, const Intervals& b) {
-   return std::tie(a.m_path, a.m_between) == std::tie(b.m_path, b.m_between);
-}
-bool magneto::operator==(const EndImage& a, const EndImage& b) {
-   return a.m_path == b.m_path;
-}
-bool magneto::operator==(const PhysicsConfig& a, const PhysicsConfig& b) {
-   return std::tie(a.m_outputfile, a.m_format, a.m_mode) == std::tie(b.m_outputfile, b.m_format, b.m_mode);
+std::optional<magneto::Job> magneto::get_parsed_job(const std::filesystem::path& path){
+   const auto file_contents = get_file_contents(path);
+   if (!file_contents.has_value())
+      return std::nullopt;
+   return get_parsed_job(file_contents.value());
 }
 
-bool magneto::operator==(const ImageTempStart& a, const ImageTempStart& b){
-   if (a.m_path != b.m_path)
-      return false;
-   if (!is_equal(a.t_min, b.t_min))
-      return false;
-   if (!is_equal(a.t_max, b.t_max))
-      return false;
-   return true;
+bool magneto::operator==(const ImageMode& a, const ImageMode& b) {
+   return std::tie(a.m_fps, a.m_intervals, a.m_mode, a.m_path) ==
+      std::tie(b.m_fps, b.m_intervals, b.m_mode, b.m_path);
+}
+bool magneto::operator==(const PhysicsConfig& a, const PhysicsConfig& b) {
+   return std::tie(a.m_outputfile, a.m_format) == std::tie(b.m_outputfile, b.m_format);
 }
 
 
 bool magneto::operator==(const Job& a, const Job& b) {
    // use the std::tie trick for most
-   if (std::tie(a.m_start_runs, a.m_L, a.m_n, a.m_spinstart, a.m_algorithm, a.m_image_mode, a.m_physics_config) !=
-      std::tie(b.m_start_runs, b.m_L, b.m_n, b.m_spinstart, b.m_algorithm, b.m_image_mode, b.m_physics_config))
+   if (std::tie(a.m_spin_start_mode, a.m_spin_start_image_path, a.m_temp_mode
+         , a.m_temp_steps, a.m_start_runs
+         , a.m_L, a.m_n, a.m_algorithm, a.m_image_mode, a.m_physics_config)
+      !=
+      std::tie(b.m_spin_start_mode, b.m_spin_start_image_path, b.m_temp_mode
+         , b.m_temp_steps, b.m_start_runs
+         , b.m_L, b.m_n, b.m_algorithm, b.m_image_mode, b.m_physics_config))
    {
       return false;
    }
 
-   // Handle temperatures separately because of the floating point comparisons
-   if (a.m_temp.index() != b.m_temp.index())
+   // Handle doubles separately because of the floating point comparisons
+   if (!(is_equal(a.m_t_single, b.m_t_single)))
       return false;
-   if (std::holds_alternative<double>(a.m_temp)) {
-      if (!is_equal(std::get<double>(a.m_temp), std::get<double>(b.m_temp)))
-         return false;
-   }
-   else {
-      if (!(std::get<ImageTempStart>(a.m_temp) == std::get<ImageTempStart>(b.m_temp)))
-         return false;
-   }
+   if (!(is_equal(a.m_t_min, b.m_t_min)))
+      return false;
+   if (!(is_equal(a.m_t_max, b.m_t_max)))
+      return false;
    return true;
 }

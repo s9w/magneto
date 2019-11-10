@@ -6,10 +6,14 @@
 
 namespace magneto {
 
-   class Metropolis {
+   class LatticeAlgorithm {
+      virtual void run(LatticeType& lattice) = 0;
+   };
+
+   class Metropolis : LatticeAlgorithm {
    public:
       Metropolis(const int J, const double T, const int L, const int max_rng_threads = 2);
-      void run(LatticeType& lattice);
+      virtual void run(LatticeType& lattice);
 
    private:
       BufferStructure<IndexPairVector> m_lattice_index_buffer;
@@ -18,10 +22,10 @@ namespace magneto {
       int m_J;
    };
 
-   class SW {
+   class SW : LatticeAlgorithm {
    public:
       SW(const int J, const double T, const int L, const int max_rng_threads = 1);
-      void run(LatticeType& lattice);
+      virtual void run(LatticeType& lattice);
 
    private:
       BufferStructure<std::vector<double>> m_bond_north_buffer;

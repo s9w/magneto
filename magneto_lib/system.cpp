@@ -81,9 +81,7 @@ namespace {
 magneto::PhysicalProperties magneto::operator+(const PhysicalProperties& a, const PhysicalProperties& b){
    PhysicalProperties sum_result(a);
    sum_result.energy += b.energy;
-   sum_result.energy_squared += b.energy_squared;
    sum_result.magnetization += b.magnetization;
-   sum_result.magnetization_sq += b.magnetization_sq;
    return sum_result;
 }
 
@@ -91,18 +89,14 @@ magneto::PhysicalProperties magneto::operator+(const PhysicalProperties& a, cons
 magneto::PhysicalProperties magneto::operator/(const PhysicalProperties& a, const unsigned int d){
    PhysicalProperties div_result(a);
    div_result.energy /= d;
-   div_result.energy_squared /= d;
    div_result.magnetization /= d;
-   div_result.magnetization_sq /= d;
    return div_result;
 }
 
 magneto::PhysicalProperties magneto::get_properties(const IsingSystem& system){
    const double energy = get_E(system.get_lattice());
-   const double energy_sq = energy * energy;
    const double m = get_m_abs(system.get_lattice());
-   const double m_sq = m * m;
-   return { energy, energy_sq, m, m_sq };
+   return { energy, m };
 }
 
 magneto::LatticeType magneto::get_randomized_system(const int L){

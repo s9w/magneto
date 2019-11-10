@@ -6,50 +6,41 @@
 
 #include <filesystem>
 #include <variant>
+#include <optional>
 
 
 namespace magneto {
    enum class Algorithm { Metropolis, SW };
+   enum class SpinStartMode { Random, Ones, Image };
+   enum class TempStartMode { Single, Many, Image };
 
-   struct RandomSpinStart {};
-   struct OneSpinStart {};
-   struct ImageSpinStart { std::filesystem::path m_path; };   
-
-   struct ImageTempStart {
-      std::filesystem::path m_path;
-      double t_min = 1.0;
-      double t_max = 5.0;
-   };
-
-   struct None {};
-
-   // movie from every iteration of the system
-   struct Movie {
-      std::filesystem::path m_path = "magneto_movie.mp4";
+   enum class ImageOrMovie { None, Endimage, Intervals, Movie };
+   struct ImageMode {
+      ImageOrMovie m_mode = ImageOrMovie::Endimage;
+      unsigned int m_intervals = 10;
       unsigned int m_fps = 30;
+      std::filesystem::path m_path = "magneto_images";
    };
-
-   // png files every n iterations of the system
-   struct Intervals {
-      std::filesystem::path m_path = "magneto_snapshots.png";
-      unsigned int m_between = 10;
-   };
-
-   // Only one png file from the last system state
-   struct EndImage { std::filesystem::path m_path; };
-
-   enum class PhysicsMode { EveryStep, AtTheEnd };
 
    struct PhysicsConfig {
       std::filesystem::path m_outputfile = "magneto_results.txt";
       std::string m_format = "E: {E}";
-      PhysicsMode m_mode = PhysicsMode::AtTheEnd;
    };
    
 
    struct Job {
-      std::variant<RandomSpinStart, OneSpinStart, ImageSpinStart> m_spinstart = RandomSpinStart();
-      std::variant<double, ImageTempStart> m_temp = 2.26;
+      SpinStartMode m_spin_start_mode;
+      std::filesystem::path m_spin_start_image_path;
+      TempStartMode m_temp_mode = TempStartMode::Single;
+
+      double m_t_single;
+
+      // this for image temp start and many temps
+      double m_t_min = 1.0;
+      double m_t_max = 5.0;
+
+      // this only for many temps
+      unsigned int m_temp_steps = 10;
 
       // How many Swendsen-Wang runs before anything is being recorded/computed
       unsigned int m_start_runs = 0;
@@ -60,23 +51,17 @@ namespace magneto {
       // Algorithm used for propagation (after the initial start runs)
       Algorithm m_algorithm = Algorithm::Metropolis;
 
-      std::variant<None, Movie, Intervals, EndImage> m_image_mode = EndImage{"magneto_image.png"};
+      ImageMode m_image_mode;
 
       PhysicsConfig m_physics_config;
    };
 
-   CLASS_DECLSPEC bool operator==(const ImageSpinStart& a, const ImageSpinStart& b);
-   CLASS_DECLSPEC bool operator==(const RandomSpinStart& a, const RandomSpinStart& b);
-   CLASS_DECLSPEC bool operator==(const OneSpinStart& a, const OneSpinStart& b);
-   CLASS_DECLSPEC bool operator==(const None& a, const None& b);
-   CLASS_DECLSPEC bool operator==(const Movie& a, const Movie& b);
-   CLASS_DECLSPEC bool operator==(const Intervals& a, const Intervals& b);
-   CLASS_DECLSPEC bool operator==(const EndImage& a, const EndImage& b);
+   CLASS_DECLSPEC bool operator==(const ImageMode& a, const ImageMode& b);
    CLASS_DECLSPEC bool operator==(const PhysicsConfig& a, const PhysicsConfig& b);
-   CLASS_DECLSPEC bool operator==(const ImageTempStart& a, const ImageTempStart& b);
    CLASS_DECLSPEC bool operator==(const Job& a, const Job& b);
 
    void from_json(const nlohmann::json& j, magneto::Job& job);
    CLASS_DECLSPEC Job get_parsed_job(const std::string& file_contents);
+   CLASS_DECLSPEC std::optional<Job> get_parsed_job(const std::filesystem::path& path);
 
 }

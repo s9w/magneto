@@ -25,9 +25,7 @@ namespace magneto {
 
    struct PhysicalProperties {
       double energy = 0.0;
-      double energy_squared = 0.0;
       double magnetization = 0.0;
-      double magnetization_sq = 0.0;
    };
 
    PhysicalProperties operator+(const PhysicalProperties& a, const PhysicalProperties& b);
