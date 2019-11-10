@@ -60,7 +60,9 @@ namespace {
 magneto::PhysicsResult magneto::get_physical_results(
 	const std::vector<magneto::PhysicalProperties>& properties, const unsigned int L, const double T
 ){
+   const double mean_energy = get_mean(get_energies(properties));
+   const double mean_magnetization = get_mean(get_mags(properties));
 	const double cv = get_energy_variance(properties) * L * L / (T * T);
 	const double chi = get_mag_variance(properties) * L * L / T;
-	return { T, get_mean(get_energies(properties)), cv, get_mean(get_mags(properties)), chi };
+	return { T, mean_energy, cv, mean_magnetization, chi };
 }
