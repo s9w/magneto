@@ -183,6 +183,7 @@ std::shared_ptr<spdlog::logger> magneto::get_logger(std::vector<spdlog::sink_ptr
       }
    }
    logger->set_level(spdlog::level::info);
+   spdlog::set_pattern("[%T] %^%v%$");
    return logger;
 }
 
