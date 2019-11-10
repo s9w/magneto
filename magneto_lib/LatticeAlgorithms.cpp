@@ -1,5 +1,5 @@
 #include "LatticeAlgorithms.h"
-#include "system.h"
+#include "IsingSystem.h"
 
 #include <sstream>
 

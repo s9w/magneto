@@ -1,6 +1,6 @@
 #pragma once
 
-#include "system.h"
+#include "IsingSystem.h"
 #include "Job.h"
 
 namespace magneto {

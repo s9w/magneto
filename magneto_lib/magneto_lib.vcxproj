@@ -15,24 +15,24 @@
     <ClInclude Include="BufferStructure.hpp" />
     <ClInclude Include="export_macro.h" />
     <ClInclude Include="file_tools.h" />
+    <ClInclude Include="IsingSystem.h" />
     <ClInclude Include="Job.h" />
     <ClInclude Include="LatticeAlgorithms.h" />
     <ClInclude Include="magneto.h" />
     <ClInclude Include="Output.h" />
     <ClInclude Include="physics_tools.h" />
     <ClInclude Include="ProgressIndicator.h" />
-    <ClInclude Include="system.h" />
     <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="file_tools.cpp" />
+    <ClCompile Include="IsingSystem.cpp" />
     <ClCompile Include="Job.cpp" />
     <ClCompile Include="LatticeAlgorithms.cpp" />
     <ClCompile Include="magneto.cpp" />
     <ClCompile Include="Output.cpp" />
     <ClCompile Include="physics_tools.cpp" />
     <ClCompile Include="ProgressIndicator.cpp" />
-    <ClCompile Include="system.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

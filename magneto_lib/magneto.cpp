@@ -1,7 +1,7 @@
 #include "magneto.h"
 
 #include "Job.h"
-#include "system.h"
+#include "IsingSystem.h"
 #include "Output.h"
 #include "ProgressIndicator.h"
 #include "windows.h"
