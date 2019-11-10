@@ -2,7 +2,7 @@
 
 #include "export_macro.h"
 
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 #include <filesystem>
 #include <variant>

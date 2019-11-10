@@ -1,7 +1,7 @@
 #include "file_tools.h"
 #include <fstream>
 #include <sstream>
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 std::optional<std::string> magneto::get_file_contents(const std::filesystem::path& path){
    const std::filesystem::path current = std::filesystem::current_path();

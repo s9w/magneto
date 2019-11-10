@@ -3,7 +3,7 @@
 
 #include <sstream>
 
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 #include <deque>
 
 namespace {

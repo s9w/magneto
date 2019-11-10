@@ -1,7 +1,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#include "spdlog/spdlog.h"
-#include "spdlog/fmt/fmt.h"
+#include <stb/stb_image_write.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
 #include <string>
 #include <sstream>
 #include <filesystem>

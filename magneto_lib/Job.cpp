@@ -1,6 +1,6 @@
 #include "Job.h"
 #include "nlohmann/json.hpp"
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 #include "file_tools.h"
 
 namespace {
