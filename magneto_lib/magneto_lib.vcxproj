@@ -19,7 +19,7 @@
     <ClInclude Include="Job.h" />
     <ClInclude Include="LatticeAlgorithms.h" />
     <ClInclude Include="magneto.h" />
-    <ClInclude Include="Output.h" />
+    <ClInclude Include="VisualOutput.h" />
     <ClInclude Include="physics_tools.h" />
     <ClInclude Include="ProgressIndicator.h" />
     <ClInclude Include="types.h" />
@@ -30,7 +30,7 @@
     <ClCompile Include="Job.cpp" />
     <ClCompile Include="LatticeAlgorithms.cpp" />
     <ClCompile Include="magneto.cpp" />
-    <ClCompile Include="Output.cpp" />
+    <ClCompile Include="VisualOutput.cpp" />
     <ClCompile Include="physics_tools.cpp" />
     <ClCompile Include="ProgressIndicator.cpp" />
   </ItemGroup>

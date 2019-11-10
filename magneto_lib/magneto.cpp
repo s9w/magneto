@@ -2,7 +2,7 @@
 
 #include "Job.h"
 #include "IsingSystem.h"
-#include "Output.h"
+#include "VisualOutput.h"
 #include "ProgressIndicator.h"
 #include "windows.h"
 #include "LatticeAlgorithms.h"
