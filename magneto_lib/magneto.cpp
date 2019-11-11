@@ -43,15 +43,16 @@ magneto::PhysicsResult get_physical_results(const double T, const magneto::Job& 
    }
 
    // Main iterations
-   TImager image_writer(job.m_L, job.m_image_mode, T);
+   TImager visual_output(job.m_L, job.m_image_mode, T);
    TAlg algorithm(J, T, job.m_L);
    std::vector<magneto::PhysicalProperties> properties;
 	for (unsigned int i = 1; i < job.m_n; ++i) {
-      image_writer.snapshot(system.get_lattice());
+      visual_output.snapshot(system.get_lattice());
 		properties.emplace_back(get_properties(system));
       algorithm.run(system.get_lattice_nc());
 	}
-   image_writer.end_actions();
+   visual_output.snapshot(system.get_lattice(), true);
+   visual_output.end_actions();
 
    // compute results
    magneto::get_logger()->info("Finished computations for T={:<4.3f}, L={}", T, job.m_L);
@@ -152,6 +153,10 @@ void run_job(const magneto::Job& job) {
       run_job<magneto::Metropolis, magneto::MovieWriter>(job);
    else if (job.m_image_mode.m_mode == magneto::ImageOrMovie::Intervals)
       run_job<magneto::Metropolis, magneto::IntervalWriter>(job);
+   else if (job.m_image_mode.m_mode == magneto::ImageOrMovie::Endimage)
+      run_job<magneto::Metropolis, magneto::EndImageWriter>(job);
+   else
+      run_job<magneto::Metropolis, magneto::NullImageWriter>(job);
 }
 
 

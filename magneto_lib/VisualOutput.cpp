@@ -88,25 +88,17 @@ magneto::MovieWriter::MovieWriter(const size_t L, const magneto::ImageMode& imag
 	: m_framecount(0)
 	, m_blendframes(blend_frames)
 	, m_png_counter(0)
-   , m_mode(image_mode)
+   , m_fps(image_mode.m_fps)
 	, m_temp_directory_name(get_png_directory_name(T))
-	, m_output_filename(get_movie_filename(m_mode.m_path, T))
+	, m_output_filename(get_movie_filename(image_mode.m_path, T))
 	, m_buffer(L)
 {
-   if (m_mode.m_mode == ImageOrMovie::None)
-      return;
-	
-   if (m_mode.m_mode == ImageOrMovie::Movie) {
-      clear_png_directory();
-      std::filesystem::create_directory(m_temp_directory_name);
-   }
+   clear_png_directory();
+   std::filesystem::create_directory(m_temp_directory_name);
 }
 
 
 void magneto::MovieWriter::snapshot(const LatticeType& grid, const bool /*last_frame*/){
-   if (m_mode.m_mode == ImageOrMovie::None)
-      return;
-
 	m_buffer.add(grid);
 	m_framecount++;
 
@@ -125,11 +117,9 @@ void magneto::MovieWriter::end_actions(){
 
 
 void magneto::MovieWriter::make_movie() const{
-   if (m_mode.m_mode == ImageOrMovie::None)
-      return;
 	const std::string cmd = fmt::format(
       "{} -y -hide_banner -loglevel panic -framerate {} -i {}\\image_%d.png -c:v libx264 {}", "ffmpeg.exe"
-      , m_mode.m_fps, m_temp_directory_name, m_output_filename.string()
+      , m_fps, m_temp_directory_name, m_output_filename.string()
    );
 	system(cmd.c_str());
 	clear_png_directory();
@@ -193,3 +183,28 @@ void magneto::TemporalAverageLattice::clear(){
 	}
    m_recorded_frames = 0;
 }
+
+
+magneto::EndImageWriter::EndImageWriter(const size_t /*L*/, const ImageMode& image_mode, const double T)
+   : m_output_filename(get_movie_filename(image_mode.m_path, T))
+{}
+
+void magneto::EndImageWriter::snapshot(const LatticeType& grid, const bool last_frame){
+   if (!last_frame)
+      return;
+   write_png(get_png_buffer_from_lattice(grid), m_output_filename);
+}
+
+void magneto::EndImageWriter::end_actions()
+{}
+
+
+
+magneto::NullImageWriter::NullImageWriter(const size_t /*L*/, const ImageMode& /*image_mode*/, const double /*T*/)
+{}
+
+void magneto::NullImageWriter::snapshot(const LatticeType& /*grid*/, const bool /*last_frame*/)
+{}
+
+void magneto::NullImageWriter::end_actions()
+{}
