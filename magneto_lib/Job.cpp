@@ -1,7 +1,7 @@
 #include "Job.h"
 #include "nlohmann/json.hpp"
-#include <spdlog/spdlog.h>
 #include "file_tools.h"
+#include "logging.h"
 
 namespace {
    bool is_equal(double a, double b) {
@@ -31,7 +31,7 @@ namespace {
          target_enum = static_cast<T>(i);
          return;
       }
-      spdlog::get("magneto_logger")->warn("Value {} invalid for config file setting {}.", value, key);
+      magneto::get_logger()->warn("Value {} invalid for config file setting {}.", value, key);
    }
 
 

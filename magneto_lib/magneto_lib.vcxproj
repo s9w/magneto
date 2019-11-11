@@ -18,6 +18,7 @@
     <ClInclude Include="IsingSystem.h" />
     <ClInclude Include="Job.h" />
     <ClInclude Include="LatticeAlgorithms.h" />
+    <ClInclude Include="logging.h" />
     <ClInclude Include="magneto.h" />
     <ClInclude Include="VisualOutput.h" />
     <ClInclude Include="physics_tools.h" />
@@ -29,6 +30,7 @@
     <ClCompile Include="IsingSystem.cpp" />
     <ClCompile Include="Job.cpp" />
     <ClCompile Include="LatticeAlgorithms.cpp" />
+    <ClCompile Include="logging.cpp" />
     <ClCompile Include="magneto.cpp" />
     <ClCompile Include="VisualOutput.cpp" />
     <ClCompile Include="physics_tools.cpp" />

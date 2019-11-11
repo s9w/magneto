@@ -8,13 +8,10 @@
 #include "LatticeAlgorithms.h"
 #include "file_tools.h"
 #include "physics_tools.h"
+#include "logging.h"
 
 #include <execution>
 #include <sstream>
-
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/async.h>
 
 
 /// <summary>Self-explanatory, but doesn't seem to work on powershell</summary>
@@ -30,7 +27,7 @@ void set_console_cursor_visibility(bool visibility) {
 
 template<class TAlg, class TImager>
 magneto::PhysicsResult get_physical_results(const double T, const magneto::Job& job) {
-   spdlog::get("magneto_logger")->info("Starting computations for T={:<4.3f}, L={}", T, job.m_L);
+   magneto::get_logger()->info("Starting computations for T={:<4.3f}, L={}", T, job.m_L);
    const int J = 1;
 	magneto::IsingSystem system(J, T, job.m_L);
 
@@ -91,32 +88,6 @@ void write_results(const std::vector<magneto::PhysicsResult>& results, const mag
       }
    }
    magneto::write_string_to_file(physics_config.m_outputfile, file_content);
-}
-
-
-std::shared_ptr<spdlog::logger> magneto::get_logger(std::vector<spdlog::sink_ptr> sinks_param) {
-   const std::string logger_name = "magneto_logger";
-   auto logger = spdlog::get(logger_name);
-   if (!logger){
-      if (!sinks_param.empty()){
-         logger = std::make_shared<spdlog::logger>(logger_name,
-            std::begin(sinks_param),
-            std::end(sinks_param));
-         spdlog::register_logger(logger);
-      }
-      else{
-         std::vector<spdlog::sink_ptr> sinks;
-         sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-         sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt", true));
-         logger = std::make_shared<spdlog::logger>(logger_name,
-            std::begin(sinks),
-            std::end(sinks));
-         spdlog::register_logger(logger);
-      }
-   }
-   logger->set_level(spdlog::level::info);
-   spdlog::set_pattern("[%T] %^%v%$");
-   return logger;
 }
 
 

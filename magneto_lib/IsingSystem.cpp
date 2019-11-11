@@ -1,8 +1,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
-#include <spdlog/spdlog.h>
 
 #include "IsingSystem.h"
+#include "logging.h"
 
 namespace {
 
@@ -69,7 +69,7 @@ namespace {
 		unsigned char* image_data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
 		magneto::LatticeTemps temps(x, std::vector<double>(x, 2.26));
       if (x != y) {
-         spdlog::get("magneto_logger")->error("Temperature input image is not square.");
+         magneto::get_logger()->error("Temperature input image is not square.");
          return temps;
       }
 		const double temp_factor = temp_max - temp_min;

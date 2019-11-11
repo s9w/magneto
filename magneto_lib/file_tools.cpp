@@ -1,7 +1,8 @@
 #include "file_tools.h"
+#include "logging.h"
 #include <fstream>
 #include <sstream>
-#include <spdlog/spdlog.h>
+
 
 std::optional<std::string> magneto::get_file_contents(const std::filesystem::path& path){
    const std::filesystem::path current = std::filesystem::current_path();
@@ -19,7 +20,7 @@ std::optional<std::string> magneto::get_file_contents(const std::filesystem::pat
 void magneto::write_string_to_file(const std::filesystem::path& path, const std::string& content){
    std::ofstream file(path);
    if (!file.is_open()) {
-      spdlog::get("magneto_logger")->error("Couldn't open file {} for writing result.", path.string());
+      magneto::get_logger()->error("Couldn't open file {} for writing result.", path.string());
       return;
    }
    file << content;
