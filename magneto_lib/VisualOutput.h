@@ -19,7 +19,6 @@ namespace magneto {
 		void make_movie() const;
 
 	private:
-		void clear_buffer();
 		void clear_png_directory() const;
 
 		LatticeType m_gridbuffer;
@@ -37,6 +36,12 @@ namespace magneto {
 		IntervalWriter(const size_t L, const ImageMode& image_mode, const double T);
 		void snapshot(const LatticeType& grid, const bool last_frame = false);
 		void end_actions();
+
+   private:
+      int m_framecount;
+      int m_frame_intervals;
+      LatticeType m_gridbuffer;
+      std::filesystem::path m_output_filename_pattern;
 	};
 
 }

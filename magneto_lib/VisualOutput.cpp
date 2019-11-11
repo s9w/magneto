@@ -16,11 +16,12 @@ namespace {
 	}
 
 
-	void write_png(const magneto::LatticeType& grid, const std::filesystem::path& path) {
+   /// <summary>grid_buffer is already in [0,255] value range</summary>
+	void write_png(const magneto::LatticeType& grid_buffer, const std::filesystem::path& path) {
 		std::vector<unsigned char> grid_png;
-		const int L = static_cast<int>(grid.size());
+		const int L = static_cast<int>(grid_buffer.size());
 		grid_png.reserve(L * L);
-		for (const auto& row : grid)
+		for (const std::vector<int>& row : grid_buffer)
 			for (const int elem : row)
 				grid_png.emplace_back(static_cast<unsigned char>(elem));
 
@@ -49,6 +50,27 @@ namespace {
 		new_name += base_name.extension();
 		return new_name;
 	}
+
+
+   /// <summary>Transforms image.png into image_2.266_{}.png</summary>
+   std::filesystem::path get_image_filename_pattern(const std::filesystem::path& base_name, const double T) {
+      auto new_name = base_name.stem();
+      new_name += "_";
+      new_name += get_rounded_string(T);
+      new_name += "_{}";
+      new_name += base_name.extension();
+      return new_name;
+   }
+
+
+   void fill_lattice_with_zeros(magneto::LatticeType& lattice) {
+      const int L = static_cast<int>(lattice.size());
+      for (int i = 0; i < L; ++i) {
+         for (int j = 0; j < L; ++j) {
+            lattice[i][j] = 0;
+         }
+      }
+   }
 }
 
 
@@ -93,7 +115,7 @@ void magneto::MovieWriter::snapshot(const LatticeType& grid, const bool last_fra
 		write_png(m_gridbuffer, filename);
 		m_framecount = 0;
 		m_png_counter++;
-		clear_buffer();
+      fill_lattice_with_zeros(m_gridbuffer);
 	}
 }
 
@@ -114,26 +136,35 @@ void magneto::MovieWriter::make_movie() const{
 }
 
 
-void magneto::MovieWriter::clear_buffer(){
-	const int L = static_cast<int>(m_gridbuffer.size());
-	for (int i = 0; i < L; ++i) {
-		for (int j = 0; j < L; ++j) {
-			m_gridbuffer[i][j] = 0;
-		}
-	}
-}
-
-
 void magneto::MovieWriter::clear_png_directory() const{
 	std::filesystem::remove_all(m_temp_directory_name);
 }
 
 
-magneto::IntervalWriter::IntervalWriter(const size_t L, const ImageMode& image_mode, const double T){
-}
+magneto::IntervalWriter::IntervalWriter(const size_t L, const ImageMode& image_mode, const double T)
+   : m_framecount(0)
+   , m_frame_intervals(image_mode.m_intervals)
+   , m_gridbuffer(std::vector<std::vector<int>>(L, std::vector<int>(L, 0)))
+   , m_output_filename_pattern(get_image_filename_pattern(image_mode.m_path, T))
+{}
+
 
 void magneto::IntervalWriter::snapshot(const LatticeType& grid, const bool last_frame){
+   ++m_framecount;
+
+   if (m_framecount % m_frame_intervals == 0) {
+		const int L = static_cast<int>(grid.size());
+		for (int i = 0; i < L; ++i) {
+			for (int j = 0; j < L; ++j) {
+				m_gridbuffer[i][j] += get_255_value_from_pm_one(grid[i][j]);
+			}
+		}
+
+		const std::filesystem::path filename = fmt::format(m_output_filename_pattern.string(), m_framecount);
+      write_png(m_gridbuffer, filename);
+      fill_lattice_with_zeros(m_gridbuffer);
+   }
 }
 
-void magneto::IntervalWriter::end_actions(){
-}
+
+void magneto::IntervalWriter::end_actions(){}
