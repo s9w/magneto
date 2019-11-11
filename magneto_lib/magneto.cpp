@@ -57,19 +57,6 @@ magneto::PhysicsResult get_physical_results(const double T, const magneto::Job& 
 }
 
 
-/// <summary>Returns vector of n equidistant temperatures</summary>
-std::vector<double> get_temps(const double tmin, const double tmax, const int n) {
-   std::vector<double> temps;
-   double temperature = tmin;
-   const double temperature_step = (tmax - tmin) / (n-1);
-   for (int i = 0; i < n; ++i) {
-      temps.emplace_back(temperature);
-      temperature += temperature_step;
-   }
-   return temps;
-}
-
-
 void write_results(const std::vector<magneto::PhysicsResult>& results, const magneto::PhysicsConfig& physics_config) {
    std::string file_content;
 
@@ -92,12 +79,12 @@ void write_results(const std::vector<magneto::PhysicsResult>& results, const mag
 
 
 template<class TAlg, class TImager>
-void run_job(const std::vector<double>& temps, const magneto::Job& job) {
-   std::vector<magneto::PhysicsResult> results(temps.size());
+void run_job(const magneto::Job& job) {
+   std::vector<magneto::PhysicsResult> results(job.m_temperatures.size());
    std::transform(
       std::execution::par_unseq,
-      std::cbegin(temps),
-      std::cend(temps),
+      std::cbegin(job.m_temperatures),
+      std::cend(job.m_temperatures),
       std::begin(results),
       [&](const double t) {return get_physical_results<TAlg, TImager>(t, job); }
    );
@@ -105,37 +92,24 @@ void run_job(const std::vector<double>& temps, const magneto::Job& job) {
 }
 
 
-template<class TAlg, class TImager>
-void run_job(const magneto::Job& job) {
-   if(job.m_temp_mode == magneto::TempStartMode::Image)
-      magneto::get_logger()->error("Image-based temperatures currently not implemented");
-   else if (job.m_temp_mode == magneto::TempStartMode::Many) {
-      const auto stepped_temps = get_temps(job.m_t_min, job.m_t_max, job.m_temp_steps);
-      run_job<TAlg, TImager>(stepped_temps, job);
-   }
-   else if (job.m_temp_mode == magneto::TempStartMode::Single)
-      run_job<TAlg, TImager>({ job.m_t_single }, job);
-}
-
-
 template<class TAlg>
-void run_job(const magneto::Job& job) {
+void run_job_outputs(const magneto::Job& job) {
    if (job.m_image_mode.m_mode == magneto::ImageOrMovie::Movie)
-      run_job<magneto::Metropolis, magneto::MovieWriter>(job);
+      run_job<TAlg, magneto::MovieWriter>(job);
    else if (job.m_image_mode.m_mode == magneto::ImageOrMovie::Intervals)
-      run_job<magneto::Metropolis, magneto::IntervalWriter>(job);
+      run_job<TAlg, magneto::IntervalWriter>(job);
    else if (job.m_image_mode.m_mode == magneto::ImageOrMovie::Endimage)
-      run_job<magneto::Metropolis, magneto::EndImageWriter>(job);
+      run_job<TAlg, magneto::EndImageWriter>(job);
    else
-      run_job<magneto::Metropolis, magneto::NullImageWriter>(job);
+      run_job<TAlg, magneto::NullImageWriter>(job);
 }
 
 
-void run_job(const magneto::Job& job) {
+void run_job_alg(const magneto::Job& job) {
    if (job.m_algorithm == magneto::Algorithm::Metropolis)
-      run_job<magneto::Metropolis>(job);
+      run_job_outputs<magneto::Metropolis>(job);
    else
-      run_job<magneto::SW>(job);
+      run_job_outputs<magneto::SW>(job);
 }
 
 
@@ -149,6 +123,8 @@ void magneto::start() {
       get_logger()->error("No configuration file found at {}", default_config_path.string());
       return;
    }
+   if (job->m_temp_mode == magneto::TempStartMode::Image)
+      magneto::get_logger()->error("Image-based temperatures currently not implemented");
 
-   run_job(job.value());
+   run_job_alg(job.value());
 }

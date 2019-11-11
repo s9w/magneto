@@ -47,6 +47,19 @@ namespace {
          target = j.at(key).get<std::string>();
    }
 
+
+   /// <summary>Returns vector of n equidistant temperatures</summary>
+   std::vector<double> get_temps(const double tmin, const double tmax, const int n) {
+      std::vector<double> temps;
+      double temperature = tmin;
+      const double temperature_step = (tmax - tmin) / (n - 1);
+      for (int i = 0; i < n; ++i) {
+         temps.emplace_back(temperature);
+         temperature += temperature_step;
+      }
+      return temps;
+   }
+
 } // namespace {}
 
 void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
@@ -71,6 +84,8 @@ void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
 
 magneto::Job magneto::get_parsed_job(const std::string& file_contents){
    nlohmann::json json = nlohmann::json::parse(file_contents);
+   magneto::Job job(json.get<Job>());
+   job.m_temperatures = get_temps(job.m_t_min, job.m_t_max, job.m_temp_steps);
    return json.get<Job>();
 }
 

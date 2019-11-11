@@ -39,6 +39,8 @@ namespace magneto {
       double m_t_min = 2.0;
       double m_t_max = 2.5;
 
+      std::vector<double> m_temperatures;
+
       // this only for many temps
       unsigned int m_temp_steps = 3;
 
