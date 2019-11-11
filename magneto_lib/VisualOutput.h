@@ -11,6 +11,23 @@ namespace magneto {
 	};
 
 
+	class TemporalAverageLattice {
+	public:
+		TemporalAverageLattice(const size_t L);
+
+		/// <summary>Expects a +-1 grid input</summary>
+		void add(const LatticeType& grid);
+
+		/// <summary>Returns the temporal average over the recorded data in [0,255] range</summary>
+		LatticeType get_average();
+		void clear();
+
+	private:
+		LatticeType m_buffer;
+		int m_recorded_frames;
+	};
+
+
 	class MovieWriter : public VisualOutputInterface{
 	public:
 		MovieWriter(const size_t L, const ImageMode& image_mode, const double T, const int blend_frames = 1);
@@ -21,13 +38,13 @@ namespace magneto {
 	private:
 		void clear_png_directory() const;
 
-		LatticeType m_gridbuffer;
 		int m_framecount;
 		int m_blendframes;
 		int m_png_counter;
       ImageMode m_mode;
 		std::string m_temp_directory_name;
 		std::filesystem::path m_output_filename;
+		TemporalAverageLattice m_buffer;
 	};
 
 
@@ -40,8 +57,7 @@ namespace magneto {
    private:
       int m_framecount;
       int m_frame_intervals;
-      LatticeType m_gridbuffer;
-      std::filesystem::path m_output_filename_pattern;
+      std::string m_fn_pattern;
 	};
 
 }
