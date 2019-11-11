@@ -17,7 +17,7 @@ namespace {
 
 
    /// <summary>grid_buffer is already in [0,255] value range</summary>
-	void write_png(const magneto::LatticeType& grid_buffer, const std::filesystem::path& path) {
+	void write_png(const magneto::LatticeIType& grid_buffer, const std::filesystem::path& path) {
 		std::vector<unsigned char> grid_png;
 		const int L = static_cast<int>(grid_buffer.size());
 		grid_png.reserve(L * L);
@@ -64,7 +64,7 @@ namespace {
 
 
 	/// <summary>Fills the buffer with the grid data. Output is in [0,255] range.</summary>
-	void add_grid_to_buffer(magneto::LatticeType& buffer, const magneto::LatticeType& grid) {
+	void add_grid_to_buffer(magneto::LatticeIType& buffer, const magneto::LatticeType& grid) {
 		const int L = static_cast<int>(grid.size());
 		for (int i = 0; i < L; ++i) {
 			for (int j = 0; j < L; ++j) {
@@ -74,9 +74,9 @@ namespace {
 	}
 
 
-	magneto::LatticeType get_png_buffer_from_lattice(const magneto::LatticeType& grid) {
+	magneto::LatticeIType get_png_buffer_from_lattice(const magneto::LatticeType& grid) {
 		const int L = static_cast<int>(grid.size());
-		magneto::LatticeType png_buffer(L, std::vector<int>(L));
+		magneto::LatticeIType png_buffer(L, std::vector<int>(L));
 		add_grid_to_buffer(png_buffer, grid);
 		return png_buffer;
 	}
@@ -128,7 +128,7 @@ void magneto::MovieWriter::make_movie() const{
    if (m_mode.m_mode == ImageOrMovie::None)
       return;
 	const std::string cmd = fmt::format(
-      "{} -y -hide_banner -loglevel panic -framerate {} -i {}\\image_%d.png -c:v libx264 -crf 5 {}", "ffmpeg.exe"
+      "{} -y -hide_banner -loglevel panic -framerate {} -i {}\\image_%d.png -c:v libx264 {}", "ffmpeg.exe"
       , m_mode.m_fps, m_temp_directory_name, m_output_filename.string()
    );
 	system(cmd.c_str());
@@ -173,7 +173,7 @@ void magneto::TemporalAverageLattice::add(const LatticeType & grid){
 }
 
 
-magneto::LatticeType magneto::TemporalAverageLattice::get_average(){
+magneto::LatticeIType magneto::TemporalAverageLattice::get_average(){
 	const int L = static_cast<int>(m_buffer.size());
 	for (int i = 0; i < L; ++i) {
 		for (int j = 0; j < L; ++j) {

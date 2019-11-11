@@ -12,7 +12,7 @@ namespace {
 
 
 	magneto::LatticeType get_lattice_from_monochrome_bitmap_data(unsigned char* png_data, const int L) {
-		magneto::LatticeType lattice(L, std::vector<int>(L));
+		magneto::LatticeType lattice(L, std::vector<char>(L));
 		for (int i = 0; i < L; ++i) {
 			for (int j = 0; j < L; ++j) {
 				lattice[i][j] = get_pm1_from_255_value(png_data[i * L + j]);
@@ -23,7 +23,7 @@ namespace {
 
 
 	magneto::LatticeType get_lattice_from_rgba_bitmap_data(unsigned char* png_data, const int L) {
-		magneto::LatticeType lattice(L, std::vector<int>(L));
+		magneto::LatticeType lattice(L, std::vector<char>(L));
 		for (int i = 0; i < L; ++i) {
 			for (int j = 0; j < L; ++j) {
 				int value = 0;
@@ -81,7 +81,7 @@ namespace {
       unsigned seed1 = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
       std::default_random_engine generator(seed1);
       std::uniform_int_distribution <int> dist(0, 1);
-      magneto::LatticeType grid(L, std::vector<int>(L));
+      magneto::LatticeType grid(L, std::vector<char>(L));
       for (int i = 0; i < L; ++i) {
          for (int j = 0; j < L; ++j) {
             grid[i][j] = dist(generator) * 2 - 1;
@@ -92,7 +92,7 @@ namespace {
 
 
    magneto::LatticeType get_empty_system(const int L) {
-      return magneto::LatticeType(L, std::vector<int>(L, -1));
+      return magneto::LatticeType(L, std::vector<char>(L, -1));
    }
 }
 

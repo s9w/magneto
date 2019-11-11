@@ -19,11 +19,11 @@ namespace magneto {
 		void add(const LatticeType& grid);
 
 		/// <summary>Returns the temporal average over the recorded data in [0,255] range</summary>
-		LatticeType get_average();
+		LatticeIType get_average();
 		void clear();
 
 	private:
-		LatticeType m_buffer;
+		LatticeIType m_buffer;
 		int m_recorded_frames;
 	};
 

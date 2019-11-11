@@ -8,6 +8,8 @@ namespace magneto {
 
    template<class T>
    using LatticeTType = std::vector<std::vector<T>>;
-   using LatticeType = LatticeTType<int>;
+
+   using LatticeType = LatticeTType<char>;
+   using LatticeIType = LatticeTType<int>;
    using LatticeTemps = LatticeTType<double>;
 }

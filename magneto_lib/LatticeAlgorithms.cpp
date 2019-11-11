@@ -117,9 +117,9 @@ void magneto::SW::run(LatticeType& lattice){
    const int L = static_cast<int>(lattice.size());
    bool flipCluster;
    int x, y, nx, ny;
-   discovered.assign(L, std::vector<int>(L, 0));
-   doesBondNorth.assign(L, std::vector<int>(L, 0));
-   doesBondEast.assign(L, std::vector<int>(L, 0));
+   discovered.assign(L, std::vector<char>(L, 0));
+   doesBondNorth.assign(L, std::vector<char>(L, 0));
+   doesBondEast.assign(L, std::vector<char>(L, 0));
 
    int counter = 0;
    for (int i = 0; i < L; ++i) {
