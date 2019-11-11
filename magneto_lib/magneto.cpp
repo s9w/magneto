@@ -27,7 +27,7 @@ void set_console_cursor_visibility(bool visibility) {
 
 template<class TAlg, class TImager>
 magneto::PhysicsResult get_physical_results(const double T, const magneto::Job& job) {
-   magneto::get_logger()->info("Starting computations for T={:<4.3f}, L={}", T, job.m_L);
+   magneto::get_logger()->info("Starting computations for T={:<5.3f}, L={}", T, job.m_L);
    const int J = 1;
 	magneto::IsingSystem system(J, T, job.m_L);
 
@@ -52,7 +52,7 @@ magneto::PhysicsResult get_physical_results(const double T, const magneto::Job& 
    visual_output.end_actions();
 
    // compute results
-   magneto::get_logger()->info("Finished computations for T={:<4.3f}, L={}", T, job.m_L);
+   magneto::get_logger()->info("Finished computations for T={:<5.3f}, L={}", T, job.m_L);
    return get_physical_results(properties, job.m_L, T);
 }
 

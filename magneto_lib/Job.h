@@ -24,7 +24,7 @@ namespace magneto {
 
    struct PhysicsConfig {
       std::filesystem::path m_outputfile = "magneto_results.txt";
-      std::string m_format = "T: {T:<4.3f},\tEnergy: {E:<4.3f},\tcv: {cv:<4.3f}, mag: {M:<4.3f}, chi: {chi:<4.3f}";
+      std::string m_format = "T: {T:<5.3f},\tEnergy: {E:<5.3f},\tcv: {cv:<5.3f}, mag: {M:<5.3f}, chi: {chi:<5.3f}";
    };
    
 

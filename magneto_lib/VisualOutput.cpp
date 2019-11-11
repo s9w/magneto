@@ -8,6 +8,7 @@
 
 #include "VisualOutput.h"
 #include "Job.h"
+#include "logging.h"
 
 namespace {
 	/// <summary>[-1,1] -> [0,255]</summary>
@@ -117,11 +118,13 @@ void magneto::MovieWriter::end_actions(){
 
 
 void magneto::MovieWriter::make_movie() const{
+   get_logger()->info("Starting ffmpeg to write movie {}.", m_output_filename.string());
 	const std::string cmd = fmt::format(
       "{} -y -hide_banner -loglevel panic -framerate {} -i {}\\image_%d.png -c:v libx264 {}", "ffmpeg.exe"
       , m_fps, m_temp_directory_name, m_output_filename.string()
    );
 	system(cmd.c_str());
+   get_logger()->info("Done writing movie {}.", m_output_filename.string());
 	clear_png_directory();
 }
 
