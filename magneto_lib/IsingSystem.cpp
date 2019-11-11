@@ -1,21 +1,28 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+#include <spdlog/spdlog.h>
 
 #include "IsingSystem.h"
 
 namespace {
 
-
-	int get_pm1_from_255_value(const int value) {
-		return value / 255 * 2 - 1;
+   /// <summary>Converts [0,255] to [-1,1]. </summary>
+   template<class TIn, class TOut>
+	TOut get_pm1_from_255_value(const TIn value) {
+		return static_cast<TOut>(value / 255 * 2 - 1);
 	}
+
+
+   // Making sure this will not be used in an unsigned char
+   template<>
+   unsigned char get_pm1_from_255_value(const unsigned char value) = delete;
 
 
 	magneto::LatticeType get_lattice_from_monochrome_bitmap_data(unsigned char* png_data, const int L) {
 		magneto::LatticeType lattice(L, std::vector<char>(L));
 		for (int i = 0; i < L; ++i) {
 			for (int j = 0; j < L; ++j) {
-				lattice[i][j] = get_pm1_from_255_value(png_data[i * L + j]);
+				lattice[i][j] = get_pm1_from_255_value<unsigned char, char>(png_data[i * L + j]);
 			}
 		}
 		return lattice;
@@ -26,12 +33,12 @@ namespace {
 		magneto::LatticeType lattice(L, std::vector<char>(L));
 		for (int i = 0; i < L; ++i) {
 			for (int j = 0; j < L; ++j) {
-				int value = 0;
+				unsigned int value = 0;
 				for (int k = 0; k < 4; ++k) {
 					value += png_data[(i * L + j) * 4 + k];
 				}
 				value /= 4;
-				lattice[i][j] = get_pm1_from_255_value(value);
+				lattice[i][j] = get_pm1_from_255_value<unsigned int, char>(value);
 			}
 		}
 		return lattice;
@@ -59,32 +66,36 @@ namespace {
 		const std::filesystem::path& path, const double temp_min, const double temp_max
 	) {
 		int x, y, bpp;
-		unsigned char* data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
-		magneto::LatticeTemps temps(x, std::vector<double>(x));
+		unsigned char* image_data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
+		magneto::LatticeTemps temps(x, std::vector<double>(x, 2.26));
+      if (x != y) {
+         spdlog::get("magneto_logger")->error("Temperature input image is not square.");
+         return temps;
+      }
 		const double temp_factor = temp_max - temp_min;
 		for (int i = 0; i < x; ++i) {
 			for (int j = 0; j < x; ++j) {
 				int value = 0;
-				for (int k = 0; k < 4; ++k) {
-					value += data[(i * x + j) * 4 + k];
+				for (int k = 0; k < bpp; ++k) {
+					value += image_data[(i * x + j) * bpp + k];
 				}
-				value /= 4;
+				value /= bpp;
 				temps[i][j] = temp_min + value * 1.0 / 256 * temp_factor;
 			}
 		}
-		stbi_image_free(data);
+		stbi_image_free(image_data);
 		return temps;
 	}
 
 
    magneto::LatticeType get_randomized_system(const int L) {
       unsigned seed1 = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-      std::default_random_engine generator(seed1);
-      std::uniform_int_distribution <int> dist(0, 1);
+      std::mt19937_64 generator(seed1);
+      std::uniform_int_distribution<int> dist(0, 1);
       magneto::LatticeType grid(L, std::vector<char>(L));
       for (int i = 0; i < L; ++i) {
          for (int j = 0; j < L; ++j) {
-            grid[i][j] = dist(generator) * 2 - 1;
+            grid[i][j] = static_cast<char>(dist(generator) * 2 - 1);
          }
       }
       return grid;

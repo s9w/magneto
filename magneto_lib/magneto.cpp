@@ -93,14 +93,14 @@ void write_results(const std::vector<magneto::PhysicsResult>& results, const mag
 }
 
 
-std::shared_ptr<spdlog::logger> magneto::get_logger(std::vector<spdlog::sink_ptr> sinks) {
+std::shared_ptr<spdlog::logger> magneto::get_logger(std::vector<spdlog::sink_ptr> sinks_param) {
    const std::string logger_name = "magneto_logger";
    auto logger = spdlog::get(logger_name);
    if (!logger){
-      if (!sinks.empty()){
+      if (!sinks_param.empty()){
          logger = std::make_shared<spdlog::logger>(logger_name,
-            std::begin(sinks),
-            std::end(sinks));
+            std::begin(sinks_param),
+            std::end(sinks_param));
          spdlog::register_logger(logger);
       }
       else{

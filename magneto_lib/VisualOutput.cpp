@@ -103,7 +103,7 @@ magneto::MovieWriter::MovieWriter(const size_t L, const magneto::ImageMode& imag
 }
 
 
-void magneto::MovieWriter::snapshot(const LatticeType& grid, const bool last_frame){
+void magneto::MovieWriter::snapshot(const LatticeType& grid, const bool /*last_frame*/){
    if (m_mode.m_mode == ImageOrMovie::None)
       return;
 
@@ -141,14 +141,14 @@ void magneto::MovieWriter::clear_png_directory() const{
 }
 
 
-magneto::IntervalWriter::IntervalWriter(const size_t L, const ImageMode& image_mode, const double T)
+magneto::IntervalWriter::IntervalWriter(const size_t /*L*/, const ImageMode& image_mode, const double T)
    : m_framecount(0)
    , m_frame_intervals(image_mode.m_intervals)
    , m_fn_pattern(get_image_filename_pattern(image_mode.m_path, T))
 {}
 
 
-void magneto::IntervalWriter::snapshot(const LatticeType& grid, const bool last_frame){
+void magneto::IntervalWriter::snapshot(const LatticeType& grid, const bool /*last_frame*/){
    ++m_framecount;
 
    if (m_framecount % m_frame_intervals == 0) {
