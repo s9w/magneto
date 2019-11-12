@@ -31,6 +31,7 @@ namespace magneto {
    struct Job {
       SpinStartMode m_spin_start_mode = SpinStartMode::Random;
       std::filesystem::path m_spin_start_image_path;
+      std::filesystem::path m_temperature_image;
       TempStartMode m_temp_mode = TempStartMode::Single;
 
       double m_t_single = 2.26;

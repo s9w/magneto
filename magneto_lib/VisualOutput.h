@@ -5,7 +5,8 @@
 
 namespace magneto {
 
-   class VisualOutputInterface {
+   class VisualOutput {
+   public:
       virtual void snapshot(const LatticeType& grid, const bool last_frame = false) = 0;
       virtual void end_actions() = 0;
    };
@@ -28,9 +29,9 @@ namespace magneto {
    };
 
 
-   class MovieWriter : public VisualOutputInterface {
+   class MovieWriter : public VisualOutput {
    public:
-      MovieWriter(const size_t L, const ImageMode& image_mode, const double T, const int blend_frames = 1);
+      MovieWriter(const size_t L, const ImageMode& image_mode, const std::string& temp_string, const int blend_frames = 1);
       void snapshot(const LatticeType& grid, const bool last_frame = false);
       void end_actions();
       void make_movie() const;
@@ -48,9 +49,9 @@ namespace magneto {
    };
 
 
-   class IntervalWriter : public VisualOutputInterface {
+   class IntervalWriter : public VisualOutput {
    public:
-      IntervalWriter(const size_t L, const ImageMode& image_mode, const double T);
+      IntervalWriter(const size_t L, const ImageMode& image_mode, const std::string& temp_string);
       void snapshot(const LatticeType& grid, const bool last_frame = false);
       void end_actions();
 
@@ -61,9 +62,9 @@ namespace magneto {
    };
 
 
-   class EndImageWriter : public VisualOutputInterface {
+   class EndImageWriter : public VisualOutput {
    public:
-      EndImageWriter(const size_t L, const ImageMode& image_mode, const double T);
+      EndImageWriter(const size_t L, const ImageMode& image_mode, const std::string& temp_string);
       void snapshot(const LatticeType& grid, const bool last_frame = false);
       void end_actions();
 
@@ -72,9 +73,9 @@ namespace magneto {
    };
 
 
-   class NullImageWriter : public VisualOutputInterface {
+   class NullImageWriter : public VisualOutput {
    public:
-      NullImageWriter(const size_t L, const ImageMode& image_mode, const double T);
+      NullImageWriter(const size_t L, const ImageMode& image_mode, const std::string& temp_string);
       void snapshot(const LatticeType& grid, const bool last_frame = false);
       void end_actions();
 

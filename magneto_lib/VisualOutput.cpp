@@ -38,26 +38,26 @@ namespace {
 	}
 
 
-	std::string get_png_directory_name(const double T) {
-		return fmt::format("temp_png_{}", get_rounded_string(T));
+	std::string get_png_directory_name(const std::string& temp_string) {
+		return fmt::format("temp_png_{}", temp_string);
 	}
 
 
 	/// <summary>Transforms movie.mp4 into movie_2.266.mp4 to differentiate between movies of different temperatures</summary>
-	std::filesystem::path get_movie_filename(const std::filesystem::path& base_name, const double T) {
+	std::filesystem::path get_movie_filename(const std::filesystem::path& base_name, const std::string temp_string) {
 		auto new_name = base_name.stem();
 		new_name += "_";
-		new_name += get_rounded_string(T);
+		new_name += temp_string;
 		new_name += base_name.extension();
 		return new_name;
 	}
 
 
    /// <summary>Transforms image.png into image_2.266_{}.png</summary>
-   std::string get_image_filename_pattern(const std::filesystem::path& base_name, const double T) {
+   std::string get_image_filename_pattern(const std::filesystem::path& base_name, const std::string& temp_string) {
       std::string new_name = base_name.stem().string();
       new_name += "_";
-      new_name += get_rounded_string(T);
+      new_name += temp_string;
       new_name += "_{}";
       new_name += base_name.extension().string();
       return new_name;
@@ -85,13 +85,13 @@ namespace {
 } // namespace {}
 
 
-magneto::MovieWriter::MovieWriter(const size_t L, const magneto::ImageMode& image_mode, const double T, const int blend_frames /*= 1*/)
+magneto::MovieWriter::MovieWriter(const size_t L, const magneto::ImageMode& image_mode, const std::string& temp_string, const int blend_frames /*= 1*/)
 	: m_framecount(0)
 	, m_blendframes(blend_frames)
 	, m_png_counter(0)
    , m_fps(image_mode.m_fps)
-	, m_temp_directory_name(get_png_directory_name(T))
-	, m_output_filename(get_movie_filename(image_mode.m_path, T))
+	, m_temp_directory_name(get_png_directory_name(temp_string))
+	, m_output_filename(get_movie_filename(image_mode.m_path, temp_string))
 	, m_buffer(L)
 {
    clear_png_directory();
@@ -134,10 +134,10 @@ void magneto::MovieWriter::clear_png_directory() const{
 }
 
 
-magneto::IntervalWriter::IntervalWriter(const size_t /*L*/, const ImageMode& image_mode, const double T)
+magneto::IntervalWriter::IntervalWriter(const size_t /*L*/, const ImageMode& image_mode, const std::string& temp_string)
    : m_framecount(0)
    , m_frame_intervals(image_mode.m_intervals)
-   , m_fn_pattern(get_image_filename_pattern(image_mode.m_path, T))
+   , m_fn_pattern(get_image_filename_pattern(image_mode.m_path, temp_string))
 {}
 
 
@@ -188,8 +188,8 @@ void magneto::TemporalAverageLattice::clear(){
 }
 
 
-magneto::EndImageWriter::EndImageWriter(const size_t /*L*/, const ImageMode& image_mode, const double T)
-   : m_output_filename(get_movie_filename(image_mode.m_path, T))
+magneto::EndImageWriter::EndImageWriter(const size_t /*L*/, const ImageMode& image_mode, const std::string& temp_string)
+   : m_output_filename(get_movie_filename(image_mode.m_path, temp_string))
 {}
 
 void magneto::EndImageWriter::snapshot(const LatticeType& grid, const bool last_frame){
@@ -203,7 +203,7 @@ void magneto::EndImageWriter::end_actions()
 
 
 
-magneto::NullImageWriter::NullImageWriter(const size_t /*L*/, const ImageMode& /*image_mode*/, const double /*T*/)
+magneto::NullImageWriter::NullImageWriter(const size_t /*L*/, const ImageMode& /*image_mode*/, const std::string& /*temp_string*/)
 {}
 
 void magneto::NullImageWriter::snapshot(const LatticeType& /*grid*/, const bool /*last_frame*/)

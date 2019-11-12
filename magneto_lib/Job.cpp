@@ -49,7 +49,9 @@ namespace {
 
 
    /// <summary>Returns vector of n equidistant temperatures</summary>
-   std::vector<double> get_temps(const double tmin, const double tmax, const int n) {
+   std::vector<double> get_temps(const magneto::TempStartMode& mode, const double tmin, const double tmax, const int n) {
+      if (mode == magneto::TempStartMode::Single)
+         return { tmin };
       std::vector<double> temps;
       double temperature = tmin;
       const double temperature_step = (tmax - tmin) / (n - 1);
@@ -71,6 +73,7 @@ void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
    write_value_from_json(j, "t_max", job.m_t_max);
    write_value_from_json(j, "t", job.m_t_single);
    write_value_from_json(j, "t_steps", job.m_temp_steps);
+   write_value_from_json(j, "t_image", job.m_temperature_image);
    write_value_from_json(j, "start_runs", job.m_start_runs);
    write_value_from_json(j, "L", job.m_L);
    write_value_from_json(j, "iterations", job.m_n);
@@ -85,8 +88,8 @@ void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
 magneto::Job magneto::get_parsed_job(const std::string& file_contents){
    nlohmann::json json = nlohmann::json::parse(file_contents);
    magneto::Job job(json.get<Job>());
-   job.m_temperatures = get_temps(job.m_t_min, job.m_t_max, job.m_temp_steps);
-   return json.get<Job>();
+   job.m_temperatures = get_temps(job.m_temp_mode, job.m_t_min, job.m_t_max, job.m_temp_steps);
+   return job;
 }
 
 
@@ -108,11 +111,11 @@ bool magneto::operator==(const PhysicsConfig& a, const PhysicsConfig& b) {
 
 bool magneto::operator==(const Job& a, const Job& b) {
    // use the std::tie trick for most
-   if (std::tie(a.m_spin_start_mode, a.m_spin_start_image_path, a.m_temp_mode
+   if (std::tie(a.m_spin_start_mode, a.m_spin_start_image_path, a.m_temperature_image, a.m_temp_mode
          , a.m_temp_steps, a.m_start_runs
          , a.m_L, a.m_n, a.m_algorithm, a.m_image_mode, a.m_physics_config)
       !=
-      std::tie(b.m_spin_start_mode, b.m_spin_start_image_path, b.m_temp_mode
+      std::tie(b.m_spin_start_mode, b.m_spin_start_image_path, a.m_temperature_image, b.m_temp_mode
          , b.m_temp_steps, b.m_start_runs
          , b.m_L, b.m_n, b.m_algorithm, b.m_image_mode, b.m_physics_config))
    {

@@ -25,35 +25,115 @@ void set_console_cursor_visibility(bool visibility) {
 }
 
 
-template<class TAlg, class TImager>
-magneto::PhysicsResult get_physical_results(const double T, const magneto::Job& job) {
-   magneto::get_logger()->info("Starting computations for T={:<5.3f}, L={}", T, job.m_L);
+std::string get_temperature_string(const double T) {
+   std::stringstream stream;
+   stream << std::fixed << std::setprecision(3) << T;
+   std::string temp_string = stream.str();
+   return stream.str();
+}
+
+
+std::string get_temperature_string(const magneto::LatticeDType& T) {
+   return "image_temps";
+}
+
+
+std::unique_ptr<magneto::VisualOutput> get_visual_output(
+   const magneto::ImageOrMovie& mode
+   , const unsigned int L
+   , const magneto::ImageMode& image_mode,
+   const std::string& temp_string
+) {
+   if (mode == magneto::ImageOrMovie::Movie)
+      return std::make_unique<magneto::MovieWriter>(L, image_mode, temp_string);
+   else if (mode == magneto::ImageOrMovie::Intervals)
+      return std::make_unique<magneto::IntervalWriter>(L, image_mode, temp_string);
+   else if (mode == magneto::ImageOrMovie::Endimage)
+      return std::make_unique<magneto::EndImageWriter>(L, image_mode, temp_string);
+   else
+      return std::make_unique<magneto::NullImageWriter>(L, image_mode, temp_string);
+}
+
+
+std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
+   const magneto::Algorithm& alg, 
+   const magneto::LatticeDType& lattice_temps,
+   const int L
+) {
+   const int J = 1;
+   if (alg == magneto::Algorithm::Metropolis) {
+         return std::make_unique<magneto::VariableMetropolis>(J, lattice_temps, L);
+   }
+   else {
+      return std::make_unique<magneto::VariableSW>(J, lattice_temps, L);
+   }
+}
+
+
+std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
+   const magneto::Algorithm& alg,
+   const double T,
+   const int L
+) {
+   const int J = 1;
+   if (alg == magneto::Algorithm::Metropolis) {
+      return std::make_unique<magneto::Metropolis>(J, T, L);
+   }
+   else {
+      return std::make_unique<magneto::SW>(J, T, L);
+   }
+}
+
+
+template<class TTemp>
+void warmup_system(magneto::IsingSystem& system, const TTemp& T, const unsigned int runs) {
+   const int L = static_cast<int>(system.get_lattice().size());
+   auto alg = get_lattice_algorithm(magneto::Algorithm::SW, T, L);
+   for (unsigned int i = 1; i < runs; ++i) {
+      alg->run(system.get_lattice_nc());
+   }
+}
+
+
+double get_t_representation_for_measurements(const double t) {
+   return t;
+}
+
+double get_t_representation_for_measurements(const magneto::LatticeDType& /*t*/) {
+   return 1.0;
+}
+
+
+template<class TTemp>
+magneto::PhysicalProperties get_physical_properties(
+   const TTemp T, 
+   const magneto::Job& job
+) {
+   const std::string temp_string = get_temperature_string(T);
+   std::unique_ptr<magneto::VisualOutput> visual_output(get_visual_output(job.m_image_mode.m_mode, job.m_L, job.m_image_mode, temp_string));
+   std::unique_ptr<magneto::LatticeAlgorithm> algorithm(get_lattice_algorithm(job.m_algorithm, T, job.m_L));
+
+   magneto::get_logger()->info("Starting computations for T={}, L={}", temp_string, job.m_L);
    const int J = 1;
 	magneto::IsingSystem system(J, T, job.m_L);
 
-   // Initial warmup runs to bring the system into a realistic state
-   {
-      magneto::SW wang(J, T, job.m_L);
-      for (unsigned int i = 1; i < job.m_start_runs; ++i) {
-         wang.run(system.get_lattice_nc());
-      }
-   }
+   warmup_system(system, T, job.m_start_runs);
 
    // Main iterations
-   TImager visual_output(job.m_L, job.m_image_mode, T);
-   TAlg algorithm(J, T, job.m_L);
-   std::vector<magneto::PhysicalProperties> properties;
+   std::vector<magneto::PhysicalMeasurement> measurements;
 	for (unsigned int i = 1; i < job.m_n; ++i) {
-      visual_output.snapshot(system.get_lattice());
-		properties.emplace_back(get_properties(system));
-      algorithm.run(system.get_lattice_nc());
+      visual_output->snapshot(system.get_lattice());
+		measurements.emplace_back(get_properties(system));
+      algorithm->run(system.get_lattice_nc());
 	}
-   visual_output.snapshot(system.get_lattice(), true);
-   visual_output.end_actions();
+   visual_output->snapshot(system.get_lattice(), true);
+   visual_output->end_actions();
 
    // compute results
-   magneto::get_logger()->info("Finished computations for T={:<5.3f}, L={}", T, job.m_L);
-   return get_physical_results(properties, job.m_L, T);
+   magneto::get_logger()->info("Finished computations for T={}, L={}", temp_string, job.m_L);
+   magneto::PhysicalProperties props;
+   props.measurements = measurements;
+   return { measurements, get_t_representation_for_measurements(T), job.m_L };
 }
 
 
@@ -78,38 +158,33 @@ void write_results(const std::vector<magneto::PhysicsResult>& results, const mag
 }
 
 
-template<class TAlg, class TImager>
-void run_job(const magneto::Job& job) {
-   std::vector<magneto::PhysicsResult> results(job.m_temperatures.size());
+std::vector<magneto::PhysicalProperties> run_job_fixed_t(const magneto::Job& job) {
+   std::vector<magneto::PhysicalProperties> properties;
    std::transform(
       std::execution::par_unseq,
       std::cbegin(job.m_temperatures),
       std::cend(job.m_temperatures),
-      std::begin(results),
-      [&](const double t) {return get_physical_results<TAlg, TImager>(t, job); }
+      std::begin(properties),
+      [&](const double t) {return get_physical_properties(t, job); }
    );
-   write_results(results, job.m_physics_config);
+   return properties;
 }
 
 
-template<class TAlg>
-void run_job_outputs(const magneto::Job& job) {
-   if (job.m_image_mode.m_mode == magneto::ImageOrMovie::Movie)
-      run_job<TAlg, magneto::MovieWriter>(job);
-   else if (job.m_image_mode.m_mode == magneto::ImageOrMovie::Intervals)
-      run_job<TAlg, magneto::IntervalWriter>(job);
-   else if (job.m_image_mode.m_mode == magneto::ImageOrMovie::Endimage)
-      run_job<TAlg, magneto::EndImageWriter>(job);
-   else
-      run_job<TAlg, magneto::NullImageWriter>(job);
-}
-
-
-void run_job_alg(const magneto::Job& job) {
-   if (job.m_algorithm == magneto::Algorithm::Metropolis)
-      run_job_outputs<magneto::Metropolis>(job);
-   else
-      run_job_outputs<magneto::SW>(job);
+void run_job(const magneto::Job& job) {
+   if (job.m_temp_mode == magneto::TempStartMode::Image) {
+      magneto::LatticeDType temps = magneto::get_lattice_temps_from_png_file(job.m_temperature_image, job.m_t_min, job.m_t_max);
+      [[maybe_unused]] const magneto::PhysicalProperties properties = get_physical_properties(temps, job);
+      // Results remain unused in image case. Not sure how to interpret these
+   }
+   else {
+      const std::vector<magneto::PhysicalProperties> properties = run_job_fixed_t(job);
+      std::vector<magneto::PhysicsResult> results;
+      for (const magneto::PhysicalProperties& prop : properties) {
+         results.emplace_back(magneto::get_physical_results(prop));
+      }
+      write_results(results, job.m_physics_config);
+   }
 }
 
 
@@ -123,8 +198,6 @@ void magneto::start() {
       get_logger()->error("No configuration file found at {}", default_config_path.string());
       return;
    }
-   if (job->m_temp_mode == magneto::TempStartMode::Image)
-      magneto::get_logger()->error("Image-based temperatures currently not implemented");
 
-   run_job_alg(job.value());
+   run_job(job.value());
 }

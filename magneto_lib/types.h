@@ -11,5 +11,5 @@ namespace magneto {
 
    using LatticeType = LatticeTType<char>;
    using LatticeIType = LatticeTType<int>;
-   using LatticeTemps = LatticeTType<double>;
+   using LatticeDType = LatticeTType<double>;
 }

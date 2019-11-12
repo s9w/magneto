@@ -28,41 +28,39 @@ namespace {
    }
 
 
-   std::vector<double> get_energies(const std::vector<magneto::PhysicalProperties>& properties) {
+   std::vector<double> get_energies(const std::vector<magneto::PhysicalMeasurement>& properties) {
       std::vector<double> energies;
       energies.reserve(properties.size());
-      for (const magneto::PhysicalProperties& property : properties)
+      for (const magneto::PhysicalMeasurement& property : properties)
          energies.emplace_back(property.energy);
       return energies;
    }
 
 
-   std::vector<double> get_mags(const std::vector<magneto::PhysicalProperties>& properties) {
+   std::vector<double> get_mags(const std::vector<magneto::PhysicalMeasurement>& properties) {
       std::vector<double> energies;
       energies.reserve(properties.size());
-      for (const magneto::PhysicalProperties& property : properties)
+      for (const magneto::PhysicalMeasurement& property : properties)
          energies.emplace_back(property.magnetization);
       return energies;
    }
 
 
-   double get_energy_variance(const std::vector<magneto::PhysicalProperties>& properties) {
+   double get_energy_variance(const std::vector<magneto::PhysicalMeasurement>& properties) {
       return get_variance(get_energies(properties));
    }
 
-   double get_mag_variance(const std::vector<magneto::PhysicalProperties>& properties) {
+   double get_mag_variance(const std::vector<magneto::PhysicalMeasurement>& properties) {
       return get_variance(get_mags(properties));
    }
 
 } // namespace {}
 
 
-magneto::PhysicsResult magneto::get_physical_results(
-	const std::vector<magneto::PhysicalProperties>& properties, const unsigned int L, const double T
-){
-   const double mean_energy = get_mean(get_energies(properties));
-   const double mean_magnetization = get_mean(get_mags(properties));
-	const double cv = get_energy_variance(properties) * L * L / (T * T);
-	const double chi = get_mag_variance(properties) * L * L / T;
-	return { T, mean_energy, cv, mean_magnetization, chi };
+magneto::PhysicsResult magneto::get_physical_results(const PhysicalProperties& properties){
+   const double mean_energy = get_mean(get_energies(properties.measurements));
+   const double mean_magnetization = get_mean(get_mags(properties.measurements));
+	const double cv = get_energy_variance(properties.measurements) * properties.L * properties.L / (properties.T * properties.T);
+	const double chi = get_mag_variance(properties.measurements) * properties.L * properties.L / properties.T;
+	return { properties.T, mean_energy, cv, mean_magnetization, chi };
 }

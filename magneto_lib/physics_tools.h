@@ -11,6 +11,6 @@ namespace magneto {
       double chi;
    };
 
-	PhysicsResult get_physical_results(const std::vector<magneto::PhysicalProperties>& properties, const unsigned int L, const double T);
+	PhysicsResult get_physical_results(const PhysicalProperties& properties);
 }
 
