@@ -51,6 +51,7 @@ namespace magneto {
 
       unsigned int m_L = 400;
       unsigned int m_n = 100;
+      int m_J = 1;
 
       // Algorithm used for propagation (after the initial start runs)
       Algorithm m_algorithm = Algorithm::Metropolis;
@@ -64,6 +65,7 @@ namespace magneto {
    struct Job {
       // system start
       unsigned int m_L = 400;
+      int m_J = 1;
       //std::variant<LatticeDType, std::vector<double>> T;
       LatticeType initial_spins;
       unsigned int m_start_runs = 0;

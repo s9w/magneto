@@ -58,9 +58,9 @@ std::unique_ptr<magneto::VisualOutput> get_visual_output(
 std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
    const magneto::Algorithm& alg, 
    const magneto::LatticeDType& lattice_temps,
-   const int L
+   const int L,
+   const int J
 ) {
-   const int J = 1;
    if (alg == magneto::Algorithm::Metropolis) {
          return std::make_unique<magneto::VariableMetropolis>(J, lattice_temps, L);
    }
@@ -73,9 +73,9 @@ std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
 std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
    const magneto::Algorithm& alg,
    const double T,
-   const int L
+   const int L,
+   const int J
 ) {
-   const int J = 1;
    if (alg == magneto::Algorithm::Metropolis) {
       return std::make_unique<magneto::Metropolis>(J, T, L);
    }
@@ -88,7 +88,7 @@ std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
 template<class TTemp>
 void warmup_system(magneto::IsingSystem& system, const TTemp& T, const unsigned int runs) {
    const int L = static_cast<int>(system.get_lattice().size());
-   auto alg = get_lattice_algorithm(magneto::Algorithm::SW, T, L);
+   auto alg = get_lattice_algorithm(magneto::Algorithm::SW, T, L, system.get_J());
    for (unsigned int i = 1; i < runs; ++i) {
       alg->run(system.get_lattice_nc());
    }
@@ -111,11 +111,10 @@ magneto::PhysicalProperties get_physical_properties(
 ) {
    const std::string temp_string = get_temperature_string(T);
    std::unique_ptr<magneto::VisualOutput> visual_output(get_visual_output(job.m_image_mode.m_mode, job.m_L, job.m_image_mode, temp_string));
-   std::unique_ptr<magneto::LatticeAlgorithm> algorithm(get_lattice_algorithm(job.m_algorithm, T, job.m_L));
+   std::unique_ptr<magneto::LatticeAlgorithm> algorithm(get_lattice_algorithm(job.m_algorithm, T, job.m_L, job.m_J));
 
    magneto::get_logger()->info("Starting computations for T={}, L={}", temp_string, job.m_L);
-   const int J = 1;
-	magneto::IsingSystem system(J, job.initial_spins);
+	magneto::IsingSystem system(job.m_J, job.initial_spins);
 
    warmup_system(system, T, job.m_start_runs);
 

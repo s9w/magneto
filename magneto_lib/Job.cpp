@@ -79,6 +79,7 @@ void magneto::from_json(const nlohmann::json& j, magneto::JsonJob& job) {
    write_value_from_json(j, "t_image", job.m_temperature_image);
    write_value_from_json(j, "start_runs", job.m_start_runs);
    write_value_from_json(j, "L", job.m_L);
+   write_value_from_json(j, "J", job.m_J);
    write_value_from_json(j, "iterations", job.m_n);
    write_value_from_json(j, "spin_start_image_path", job.m_spin_start_image_path);
    write_value_from_json(j, "image_intervals", job.m_image_mode.m_intervals);
@@ -109,6 +110,7 @@ magneto::get_job(const JsonJob& json_job){
 
    job.m_algorithm = json_job.m_algorithm;
    job.m_n = json_job.m_n;
+   job.m_J = json_job.m_J;
    job.m_image_mode = json_job.m_image_mode;
    job.m_physics_config = json_job.m_physics_config;
 
