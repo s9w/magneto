@@ -115,7 +115,7 @@ magneto::PhysicalProperties get_physical_properties(
 
    magneto::get_logger()->info("Starting computations for T={}, L={}", temp_string, job.m_L);
    const int J = 1;
-	magneto::IsingSystem system(J, T, job.m_L);
+	magneto::IsingSystem system(J, job.initial_spins);
 
    warmup_system(system, T, job.m_start_runs);
 
@@ -158,12 +158,12 @@ void write_results(const std::vector<magneto::PhysicsResult>& results, const mag
 }
 
 
-std::vector<magneto::PhysicalProperties> run_job_fixed_t(const magneto::Job& job) {
-   std::vector<magneto::PhysicalProperties> properties;
+std::vector<magneto::PhysicalProperties> run_job_fixed_t(const magneto::Job& job, const std::vector<double>& temps) {
+   std::vector<magneto::PhysicalProperties> properties(temps.size());
    std::transform(
       std::execution::par_unseq,
-      std::cbegin(job.m_temperatures),
-      std::cend(job.m_temperatures),
+      std::cbegin(temps),
+      std::cend(temps),
       std::begin(properties),
       [&](const double t) {return get_physical_properties(t, job); }
    );
@@ -171,20 +171,23 @@ std::vector<magneto::PhysicalProperties> run_job_fixed_t(const magneto::Job& job
 }
 
 
-void run_job(const magneto::Job& job) {
-   if (job.m_temp_mode == magneto::TempStartMode::Image) {
-      magneto::LatticeDType temps = magneto::get_lattice_temps_from_png_file(job.m_temperature_image, job.m_t_min, job.m_t_max);
-      [[maybe_unused]] const magneto::PhysicalProperties properties = get_physical_properties(temps, job);
-      // Results remain unused in image case. Not sure how to interpret these
-   }
-   else {
-      const std::vector<magneto::PhysicalProperties> properties = run_job_fixed_t(job);
-      std::vector<magneto::PhysicsResult> results;
-      for (const magneto::PhysicalProperties& prop : properties) {
-         results.emplace_back(magneto::get_physical_results(prop));
+void run_job(const magneto::Job& job, const std::variant<magneto::LatticeDType, std::vector<double>>& temp_variant) {
+   struct V {
+      V(const magneto::Job& job) : m_job(job) { }
+      void operator()(const magneto::LatticeDType& T) {
+         [[maybe_unused]] const magneto::PhysicalProperties properties = get_physical_properties(T, m_job);
       }
-      write_results(results, job.m_physics_config);
-   }
+      void operator()(const std::vector<double>& T) {
+         const std::vector<magneto::PhysicalProperties> properties = run_job_fixed_t(m_job, T);
+         std::vector<magneto::PhysicsResult> results;
+         for (const magneto::PhysicalProperties& prop : properties) {
+            results.emplace_back(magneto::get_physical_results(prop));
+         }
+         write_results(results, m_job.m_physics_config);
+      }
+      magneto::Job m_job;
+   };
+   std::visit(V(job), temp_variant);
 }
 
 
@@ -193,11 +196,12 @@ void magneto::start() {
    set_console_cursor_visibility(false);
 
    const std::filesystem::path default_config_path = "magneto_config.json";
-   const std::optional<Job> job = get_parsed_job(default_config_path);
-   if (!job.has_value()) {
+   const std::optional<JsonJob> parsed_job = get_parsed_job(default_config_path);
+   if (!parsed_job.has_value()) {
       get_logger()->error("No configuration file found at {}", default_config_path.string());
       return;
    }
 
-   run_job(job.value());
+   const auto [job, T] = get_job(parsed_job.value());
+   run_job(job, T);
 }

@@ -10,19 +10,15 @@
 namespace magneto {
 	class IsingSystem {
 	public:
-		IsingSystem(const int j, const double T, const int L);
-		IsingSystem(const int j, const LatticeDType& T, const int L);
-		IsingSystem(const int j, const double T, const std::filesystem::path& input_path);
+      IsingSystem(const int j, const LatticeType& initial_state);
 		[[nodiscard]] const LatticeType& get_lattice() const;
 		[[nodiscard]] LatticeType& get_lattice_nc();
 		size_t get_L() const;
       int get_J() const;
-		std::optional<double> get_temp() const;
 
 	private:
 		LatticeType m_lattice;
 		int m_J = 1;
-		std::variant<double, LatticeDType> m_T;
    };
 
    /// <summary>Energy and Magnetization of the system at one point in time</summary>
@@ -51,6 +47,6 @@ namespace magneto {
    /// <summary>Returns normalized absolute magnetization</summary>
    double get_m_abs(const LatticeType& grid);
 
-	
+   LatticeType get_randomized_system(const int L);
 	
 }

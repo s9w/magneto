@@ -1,7 +1,10 @@
 #include "Job.h"
-#include "nlohmann/json.hpp"
 #include "file_tools.h"
 #include "logging.h"
+#include "IsingSystem.h"
+#include "nlohmann/json.hpp"
+#include <random>
+
 
 namespace {
    bool is_equal(double a, double b) {
@@ -64,8 +67,8 @@ namespace {
 
 } // namespace {}
 
-void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
-   set_enum_from_key(j, job.m_spin_start_mode, "spin_start", {"random", "ones", "image"});
+void magneto::from_json(const nlohmann::json& j, magneto::JsonJob& job) {
+   set_enum_from_key(j, job.m_spin_start_mode, "spin_start", {"random", "image"});
    set_enum_from_key(j, job.m_temp_mode, "temp", { "single", "range", "image" });
    set_enum_from_key(j, job.m_algorithm, "algorithm", { "metropolis", "SW" });
    set_enum_from_key(j, job.m_image_mode.m_mode, "image_output_mode", { "none", "endimage", "intervals", "movie" });
@@ -85,15 +88,44 @@ void magneto::from_json(const nlohmann::json& j, magneto::Job& job) {
    write_value_from_json(j, "physics_format", job.m_physics_config.m_format);
 }
 
-magneto::Job magneto::get_parsed_job(const std::string& file_contents){
+magneto::JsonJob magneto::get_parsed_job(const std::string& file_contents){
    nlohmann::json json = nlohmann::json::parse(file_contents);
-   magneto::Job job(json.get<Job>());
+   magneto::JsonJob job(json.get<JsonJob>());
    job.m_temperatures = get_temps(job.m_temp_mode, job.m_t_min, job.m_t_max, job.m_temp_steps);
    return job;
 }
 
 
-std::optional<magneto::Job> magneto::get_parsed_job(const std::filesystem::path& path){
+//magneto::Job
+std::tuple<magneto::Job, std::variant<magneto::LatticeDType, std::vector<double>>>
+magneto::get_job(const JsonJob& json_job){
+   Job job;
+   job.m_L = json_job.m_L;
+   
+   if (json_job.m_spin_start_mode == SpinStartMode::Random)
+      job.initial_spins = get_randomized_system(json_job.m_L);
+   else //SpinStartMode::Image
+      job.initial_spins = get_lattice_from_png_file(json_job.m_spin_start_image_path);
+
+   job.m_algorithm = json_job.m_algorithm;
+   job.m_n = json_job.m_n;
+   job.m_image_mode = json_job.m_image_mode;
+   job.m_physics_config = json_job.m_physics_config;
+
+
+   std::variant<magneto::LatticeDType, std::vector<double>> T;
+   if (json_job.m_temp_mode == TempStartMode::Image)
+      T = get_lattice_temps_from_png_file(json_job.m_temperature_image, json_job.m_t_min, json_job.m_t_max);
+   else if (json_job.m_temp_mode == TempStartMode::Single)
+      T = std::vector<double>{ json_job.m_t_min };
+   else
+      T = get_temps(json_job.m_temp_mode, json_job.m_t_min, json_job.m_t_max, json_job.m_temp_steps);
+
+   return { job, T };
+}
+
+
+std::optional<magneto::JsonJob> magneto::get_parsed_job(const std::filesystem::path& path){
    const auto file_contents = get_file_contents(path);
    if (!file_contents.has_value())
       return std::nullopt;
@@ -109,7 +141,7 @@ bool magneto::operator==(const PhysicsConfig& a, const PhysicsConfig& b) {
 }
 
 
-bool magneto::operator==(const Job& a, const Job& b) {
+bool magneto::operator==(const JsonJob& a, const JsonJob& b) {
    // use the std::tie trick for most
    if (std::tie(a.m_spin_start_mode, a.m_spin_start_image_path, a.m_temperature_image, a.m_temp_mode
          , a.m_temp_steps, a.m_start_runs

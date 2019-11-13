@@ -7,11 +7,12 @@
 #include <filesystem>
 #include <variant>
 #include <optional>
+#include "types.h"
 
 
 namespace magneto {
    enum class Algorithm { Metropolis, SW };
-   enum class SpinStartMode { Random, Ones, Image };
+   enum class SpinStartMode { Random, Image };
    enum class TempStartMode { Single, Many, Image };
 
    enum class ImageOrMovie { None, Endimage, Intervals, Movie };
@@ -28,7 +29,7 @@ namespace magneto {
    };
    
 
-   struct Job {
+   struct JsonJob {
       SpinStartMode m_spin_start_mode = SpinStartMode::Random;
       std::filesystem::path m_spin_start_image_path;
       std::filesystem::path m_temperature_image;
@@ -59,12 +60,30 @@ namespace magneto {
       PhysicsConfig m_physics_config;
    };
 
+
+   struct Job {
+      // system start
+      unsigned int m_L = 400;
+      //std::variant<LatticeDType, std::vector<double>> T;
+      LatticeType initial_spins;
+      unsigned int m_start_runs = 0;
+
+      // system evolution
+      Algorithm m_algorithm = Algorithm::Metropolis;
+      unsigned int m_n = 100;
+
+      // output
+      ImageMode m_image_mode;
+      PhysicsConfig m_physics_config;
+   };
+
    CLASS_DECLSPEC bool operator==(const ImageMode& a, const ImageMode& b);
    CLASS_DECLSPEC bool operator==(const PhysicsConfig& a, const PhysicsConfig& b);
-   CLASS_DECLSPEC bool operator==(const Job& a, const Job& b);
+   CLASS_DECLSPEC bool operator==(const JsonJob& a, const JsonJob& b);
 
-   void from_json(const nlohmann::json& j, magneto::Job& job);
-   CLASS_DECLSPEC Job get_parsed_job(const std::string& file_contents);
-   CLASS_DECLSPEC std::optional<Job> get_parsed_job(const std::filesystem::path& path);
+   void from_json(const nlohmann::json& j, magneto::JsonJob& job);
+   CLASS_DECLSPEC JsonJob get_parsed_job(const std::string& file_contents);
+   CLASS_DECLSPEC std::tuple<Job, std::variant<LatticeDType, std::vector<double>>> get_job(const JsonJob& json_job);
+   CLASS_DECLSPEC std::optional<JsonJob> get_parsed_job(const std::filesystem::path& path);
 
 }
