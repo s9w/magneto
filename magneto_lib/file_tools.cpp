@@ -22,24 +22,32 @@ namespace {
    unsigned char get_pm1_from_255_value(const unsigned char value) = delete;
 
 
-   magneto::LatticeType get_lattice_from_monochrome_bitmap_data(unsigned char* png_data, const int L) {
-      magneto::LatticeType lattice(L, std::vector<char>(L));
-      for (int i = 0; i < L; ++i) {
-         for (int j = 0; j < L; ++j) {
-            lattice[i][j] = get_pm1_from_255_value<unsigned char, char>(png_data[i * L + j]);
+   magneto::LatticeType get_lattice_from_monochrome_bitmap_data(
+      unsigned char* png_data,
+      const int Lx,
+      const int Ly
+   ) {
+      magneto::LatticeType lattice(Ly, std::vector<char>(Lx));
+      for (int i = 0; i < Ly; ++i) {
+         for (int j = 0; j < Lx; ++j) {
+            lattice[i][j] = get_pm1_from_255_value<unsigned char, char>(png_data[i * Lx + j]);
          }
       }
       return lattice;
    }
 
 
-   magneto::LatticeType get_lattice_from_rgba_bitmap_data(unsigned char* png_data, const int L) {
-      magneto::LatticeType lattice(L, std::vector<char>(L));
-      for (int i = 0; i < L; ++i) {
-         for (int j = 0; j < L; ++j) {
+   magneto::LatticeType get_lattice_from_rgba_bitmap_data(
+      unsigned char* png_data,
+      const int Lx,
+      const int Ly
+   ) {
+      magneto::LatticeType lattice(Ly, std::vector<char>(Lx));
+      for (int i = 0; i < Ly; ++i) {
+         for (int j = 0; j < Lx; ++j) {
             unsigned int value = 0;
             for (int k = 0; k < 4; ++k) {
-               value += png_data[(i * L + j) * 4 + k];
+               value += png_data[(i * Ly + j) * 4 + k];
             }
             value /= 4;
             lattice[i][j] = get_pm1_from_255_value<unsigned int, char>(value);
@@ -49,12 +57,28 @@ namespace {
    }
 
 
-   magneto::LatticeType get_lattice_from_png_data(unsigned char* png_data, const int bpp, const int L) {
+   magneto::LatticeType get_lattice_from_png_data(
+      unsigned char* png_data, 
+      const int bpp,
+      const int Lx,
+      const int Ly
+   ) {
       if (bpp == 1)
-         return get_lattice_from_monochrome_bitmap_data(png_data, L);
+         return get_lattice_from_monochrome_bitmap_data(png_data, Lx, Ly);
       else if (bpp == 4)
-         return get_lattice_from_rgba_bitmap_data(png_data, L);
+         return get_lattice_from_rgba_bitmap_data(png_data, Lx, Ly);
    }
+
+} // namespace {}
+
+
+std::filesystem::path magneto::get_resized_image_path(const std::filesystem::path& original_path) {
+   std::filesystem::path new_path = original_path;
+   std::filesystem::path new_filename = original_path.stem();
+   new_filename += "_resized";
+   new_filename += original_path.extension();
+   new_path.replace_filename(new_filename);
+   return new_path;
 }
 
 
@@ -87,13 +111,9 @@ magneto::LatticeDType magneto::get_lattice_temps_from_png_file(
 ) {
    int x, y, bpp;
    unsigned char* image_data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
-   magneto::LatticeDType temps(x, std::vector<double>(x, 2.26));
-   if (x != y) {
-      magneto::get_logger()->error("Temperature input image is not square.");
-      return temps;
-   }
+   magneto::LatticeDType temps(y, std::vector<double>(x, 2.26));
    const double temp_factor = temp_max - temp_min;
-   for (int i = 0; i < x; ++i) {
+   for (int i = 0; i < y; ++i) {
       for (int j = 0; j < x; ++j) {
          int value = 0;
          for (int k = 0; k < bpp; ++k) {
@@ -108,10 +128,14 @@ magneto::LatticeDType magneto::get_lattice_temps_from_png_file(
 }
 
 
-magneto::LatticeType magneto::get_lattice_from_png_file(const std::filesystem::path& path) {
+std::optional<magneto::LatticeType> magneto::get_spin_state_from_png(const std::filesystem::path& path) {
    int x, y, bpp;
    unsigned char* data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
-   magneto::LatticeType lattice = get_lattice_from_png_data(data, bpp, x);
+   if (data == nullptr) {
+      magneto::get_logger()->error("Couldn't open image {}", path.string());
+      return std::nullopt;
+   }
+   magneto::LatticeType lattice = get_lattice_from_png_data(data, bpp, x, y);
    stbi_image_free(data);
    return lattice;
 }

@@ -20,13 +20,15 @@ namespace {
    /// <summary>grid_buffer is already in [0,255] value range</summary>
 	void write_png(const magneto::LatticeIType& grid_buffer, const std::filesystem::path& path) {
 		std::vector<unsigned char> grid_png;
-		const int L = static_cast<int>(grid_buffer.size());
-		grid_png.reserve(L * L);
+      const auto [Lx, Ly] = magneto::get_dimensions_of_lattice(grid_buffer);
+		grid_png.reserve(Lx * Ly);
 		for (const std::vector<int>& row : grid_buffer)
 			for (const int elem : row)
 				grid_png.emplace_back(static_cast<unsigned char>(elem));
 
-		stbi_write_png(path.string().c_str(), L, L, 1, grid_png.data(), L * 1);
+      const int bpp = 1;
+      const int pixel_row_stride = Lx * bpp;
+		stbi_write_png(path.string().c_str(), Lx, Ly, 1, grid_png.data(), pixel_row_stride);
 	}
 
 
@@ -66,9 +68,9 @@ namespace {
 
 	/// <summary>Fills the buffer with the grid data. Output is in [0,255] range.</summary>
 	void add_grid_to_buffer(magneto::LatticeIType& buffer, const magneto::LatticeType& grid) {
-		const int L = static_cast<int>(grid.size());
-		for (int i = 0; i < L; ++i) {
-			for (int j = 0; j < L; ++j) {
+      const auto [Lx, Ly] = magneto::get_dimensions_of_lattice(grid);
+		for (int i = 0; i < Ly; ++i) {
+			for (int j = 0; j < Lx; ++j) {
 				buffer[i][j] += get_255_value_from_pm_one(grid[i][j]);
 			}
 		}
@@ -76,8 +78,8 @@ namespace {
 
 
 	magneto::LatticeIType get_png_buffer_from_lattice(const magneto::LatticeType& grid) {
-		const int L = static_cast<int>(grid.size());
-		magneto::LatticeIType png_buffer(L, std::vector<int>(L));
+      const auto [Lx, Ly] = magneto::get_dimensions_of_lattice(grid);
+		magneto::LatticeIType png_buffer(Ly, std::vector<int>(Lx));
 		add_grid_to_buffer(png_buffer, grid);
 		return png_buffer;
 	}
@@ -85,14 +87,14 @@ namespace {
 } // namespace {}
 
 
-magneto::MovieWriter::MovieWriter(const size_t L, const magneto::ImageMode& image_mode, const std::string& temp_string, const int blend_frames /*= 1*/)
+magneto::MovieWriter::MovieWriter(const size_t Lx, const size_t Ly, const magneto::ImageMode& image_mode, const std::string& temp_string, const int blend_frames /*= 1*/)
 	: m_framecount(0)
 	, m_blendframes(blend_frames)
 	, m_png_counter(0)
    , m_fps(image_mode.m_fps)
 	, m_temp_directory_name(get_png_directory_name(temp_string))
 	, m_output_filename(get_movie_filename(image_mode.m_path, temp_string))
-	, m_buffer(L)
+	, m_buffer(Lx, Ly)
 {
    clear_png_directory();
    std::filesystem::create_directory(m_temp_directory_name);
@@ -134,7 +136,7 @@ void magneto::MovieWriter::clear_png_directory() const{
 }
 
 
-magneto::IntervalWriter::IntervalWriter(const size_t /*L*/, const ImageMode& image_mode, const std::string& temp_string)
+magneto::IntervalWriter::IntervalWriter(const size_t /*Lx*/, const size_t /*Ly*/, const ImageMode& image_mode, const std::string& temp_string)
    : m_framecount(0)
    , m_frame_intervals(image_mode.m_intervals)
    , m_fn_pattern(get_image_filename_pattern(image_mode.m_path, temp_string))
@@ -154,8 +156,8 @@ void magneto::IntervalWriter::snapshot(const LatticeType& grid, const bool /*las
 void magneto::IntervalWriter::end_actions(){}
 
 
-magneto::TemporalAverageLattice::TemporalAverageLattice(const size_t L)
-	: m_buffer(std::vector<std::vector<int>>(L, std::vector<int>(L, 0)))
+magneto::TemporalAverageLattice::TemporalAverageLattice(const size_t Lx, const size_t Ly)
+	: m_buffer(std::vector<std::vector<int>>(Ly, std::vector<int>(Lx, 0)))
 	, m_recorded_frames(0)
 {}
 
@@ -167,9 +169,9 @@ void magneto::TemporalAverageLattice::add(const LatticeType & grid){
 
 
 magneto::LatticeIType magneto::TemporalAverageLattice::get_average(){
-	const int L = static_cast<int>(m_buffer.size());
-	for (int i = 0; i < L; ++i) {
-		for (int j = 0; j < L; ++j) {
+   const auto [Lx, Ly] = get_dimensions_of_lattice(m_buffer);
+	for (int i = 0; i < Ly; ++i) {
+		for (int j = 0; j < Lx; ++j) {
 			m_buffer[i][j] /= m_recorded_frames;
 		}
 	}
@@ -178,9 +180,9 @@ magneto::LatticeIType magneto::TemporalAverageLattice::get_average(){
 
 
 void magneto::TemporalAverageLattice::clear(){
-	const int L = static_cast<int>(m_buffer.size());
-	for (int i = 0; i < L; ++i) {
-		for (int j = 0; j < L; ++j) {
+   const auto [Lx, Ly] = get_dimensions_of_lattice(m_buffer);
+	for (int i = 0; i < Ly; ++i) {
+		for (int j = 0; j < Lx; ++j) {
 			m_buffer[i][j] = 0;
 		}
 	}
@@ -188,7 +190,7 @@ void magneto::TemporalAverageLattice::clear(){
 }
 
 
-magneto::EndImageWriter::EndImageWriter(const size_t /*L*/, const ImageMode& image_mode, const std::string& temp_string)
+magneto::EndImageWriter::EndImageWriter(const size_t /*Lx*/, const size_t /*Ly*/, const ImageMode& image_mode, const std::string& temp_string)
    : m_output_filename(get_movie_filename(image_mode.m_path, temp_string))
 {}
 
@@ -203,7 +205,7 @@ void magneto::EndImageWriter::end_actions()
 
 
 
-magneto::NullImageWriter::NullImageWriter(const size_t /*L*/, const ImageMode& /*image_mode*/, const std::string& /*temp_string*/)
+magneto::NullImageWriter::NullImageWriter(const size_t /*Lx*/, const size_t /*Ly*/, const ImageMode& /*image_mode*/, const std::string& /*temp_string*/)
 {}
 
 void magneto::NullImageWriter::snapshot(const LatticeType& /*grid*/, const bool /*last_frame*/)

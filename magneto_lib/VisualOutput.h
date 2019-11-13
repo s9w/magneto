@@ -14,7 +14,7 @@ namespace magneto {
 
    class TemporalAverageLattice {
    public:
-      TemporalAverageLattice(const size_t L);
+      TemporalAverageLattice(const size_t Lx, const size_t Ly);
 
       /// <summary>Expects a +-1 grid input</summary>
       void add(const LatticeType& grid);
@@ -31,7 +31,7 @@ namespace magneto {
 
    class MovieWriter : public VisualOutput {
    public:
-      MovieWriter(const size_t L, const ImageMode& image_mode, const std::string& temp_string, const int blend_frames = 1);
+      MovieWriter(const size_t Lx, const size_t Ly, const ImageMode& image_mode, const std::string& temp_string, const int blend_frames = 1);
       void snapshot(const LatticeType& grid, const bool last_frame = false);
       void end_actions();
       void make_movie() const;
@@ -51,7 +51,7 @@ namespace magneto {
 
    class IntervalWriter : public VisualOutput {
    public:
-      IntervalWriter(const size_t L, const ImageMode& image_mode, const std::string& temp_string);
+      IntervalWriter(const size_t Lx, const size_t Ly, const ImageMode& image_mode, const std::string& temp_string);
       void snapshot(const LatticeType& grid, const bool last_frame = false);
       void end_actions();
 
@@ -64,7 +64,7 @@ namespace magneto {
 
    class EndImageWriter : public VisualOutput {
    public:
-      EndImageWriter(const size_t L, const ImageMode& image_mode, const std::string& temp_string);
+      EndImageWriter(const size_t Lx, const size_t Ly, const ImageMode& image_mode, const std::string& temp_string);
       void snapshot(const LatticeType& grid, const bool last_frame = false);
       void end_actions();
 
@@ -75,7 +75,7 @@ namespace magneto {
 
    class NullImageWriter : public VisualOutput {
    public:
-      NullImageWriter(const size_t L, const ImageMode& image_mode, const std::string& temp_string);
+      NullImageWriter(const size_t Lx, const size_t Ly, const ImageMode& image_mode, const std::string& temp_string);
       void snapshot(const LatticeType& grid, const bool last_frame = false);
       void end_actions();
 

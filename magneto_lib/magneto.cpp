@@ -39,33 +39,35 @@ std::string get_temperature_string(const magneto::LatticeDType& T) {
 
 
 std::unique_ptr<magneto::VisualOutput> get_visual_output(
-   const magneto::ImageOrMovie& mode
-   , const unsigned int L
-   , const magneto::ImageMode& image_mode,
+   const magneto::ImageOrMovie& mode,
+   const unsigned int Lx,
+   const unsigned int Ly,
+   const magneto::ImageMode& image_mode,
    const std::string& temp_string
 ) {
    if (mode == magneto::ImageOrMovie::Movie)
-      return std::make_unique<magneto::MovieWriter>(L, image_mode, temp_string);
+      return std::make_unique<magneto::MovieWriter>(Lx, Ly, image_mode, temp_string);
    else if (mode == magneto::ImageOrMovie::Intervals)
-      return std::make_unique<magneto::IntervalWriter>(L, image_mode, temp_string);
+      return std::make_unique<magneto::IntervalWriter>(Lx, Ly, image_mode, temp_string);
    else if (mode == magneto::ImageOrMovie::Endimage)
-      return std::make_unique<magneto::EndImageWriter>(L, image_mode, temp_string);
+      return std::make_unique<magneto::EndImageWriter>(Lx, Ly, image_mode, temp_string);
    else
-      return std::make_unique<magneto::NullImageWriter>(L, image_mode, temp_string);
+      return std::make_unique<magneto::NullImageWriter>(Lx, Ly, image_mode, temp_string);
 }
 
 
 std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
    const magneto::Algorithm& alg, 
    const magneto::LatticeDType& lattice_temps,
-   const int L,
+   const int Lx,
+   const int Ly,
    const int J
 ) {
    if (alg == magneto::Algorithm::Metropolis) {
-         return std::make_unique<magneto::VariableMetropolis>(J, lattice_temps, L);
+         return std::make_unique<magneto::VariableMetropolis>(J, lattice_temps, Lx, Ly);
    }
    else {
-      return std::make_unique<magneto::VariableSW>(J, lattice_temps, L);
+      return std::make_unique<magneto::VariableSW>(J, lattice_temps, Lx, Ly);
    }
 }
 
@@ -73,22 +75,23 @@ std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
 std::unique_ptr<magneto::LatticeAlgorithm> get_lattice_algorithm(
    const magneto::Algorithm& alg,
    const double T,
-   const int L,
+   const int Lx,
+   const int Ly,
    const int J
 ) {
    if (alg == magneto::Algorithm::Metropolis) {
-      return std::make_unique<magneto::Metropolis>(J, T, L);
+      return std::make_unique<magneto::Metropolis>(J, T, Lx, Ly);
    }
    else {
-      return std::make_unique<magneto::SW>(J, T, L);
+      return std::make_unique<magneto::SW>(J, T, Lx, Ly);
    }
 }
 
 
 template<class TTemp>
 void warmup_system(magneto::IsingSystem& system, const TTemp& T, const unsigned int runs) {
-   const int L = static_cast<int>(system.get_lattice().size());
-   auto alg = get_lattice_algorithm(magneto::Algorithm::SW, T, L, system.get_J());
+   const auto [Lx, Ly] = magneto::get_dimensions_of_lattice(system.get_lattice());
+   auto alg = get_lattice_algorithm(magneto::Algorithm::SW, T, Lx, Ly, system.get_J());
    for (unsigned int i = 1; i < runs; ++i) {
       alg->run(system.get_lattice_nc());
    }
@@ -110,10 +113,10 @@ magneto::PhysicalProperties get_physical_properties(
    const magneto::Job& job
 ) {
    const std::string temp_string = get_temperature_string(T);
-   std::unique_ptr<magneto::VisualOutput> visual_output(get_visual_output(job.m_image_mode.m_mode, job.m_L, job.m_image_mode, temp_string));
-   std::unique_ptr<magneto::LatticeAlgorithm> algorithm(get_lattice_algorithm(job.m_algorithm, T, job.m_L, job.m_J));
+   std::unique_ptr<magneto::VisualOutput> visual_output(get_visual_output(job.m_image_mode.m_mode, job.m_Lx, job.m_Ly, job.m_image_mode, temp_string));
+   std::unique_ptr<magneto::LatticeAlgorithm> algorithm(get_lattice_algorithm(job.m_algorithm, T, job.m_Lx, job.m_Ly, job.m_J));
 
-   magneto::get_logger()->info("Starting computations for T={}, L={}", temp_string, job.m_L);
+   magneto::get_logger()->info("Starting computations for {}X{} System, T={}", job.m_Lx, job.m_Ly, temp_string);
 	magneto::IsingSystem system(job.m_J, job.initial_spins);
 
    warmup_system(system, T, job.m_start_runs);
@@ -129,10 +132,10 @@ magneto::PhysicalProperties get_physical_properties(
    visual_output->end_actions();
 
    // compute results
-   magneto::get_logger()->info("Finished computations for T={}, L={}", temp_string, job.m_L);
+   magneto::get_logger()->info("Finished computations for {}X{} System, T={}", job.m_Lx, job.m_Ly, temp_string);
    magneto::PhysicalProperties props;
    props.measurements = measurements;
-   return { measurements, get_t_representation_for_measurements(T), job.m_L };
+   return { measurements, get_t_representation_for_measurements(T), job.m_Lx, job.m_Ly };
 }
 
 

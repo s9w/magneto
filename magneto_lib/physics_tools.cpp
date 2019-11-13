@@ -60,7 +60,7 @@ namespace {
 magneto::PhysicsResult magneto::get_physical_results(const PhysicalProperties& properties){
    const double mean_energy = get_mean(get_energies(properties.measurements));
    const double mean_magnetization = get_mean(get_mags(properties.measurements));
-	const double cv = get_energy_variance(properties.measurements) * properties.L * properties.L / (properties.T * properties.T);
-	const double chi = get_mag_variance(properties.measurements) * properties.L * properties.L / properties.T;
+	const double cv = get_energy_variance(properties.measurements) * properties.Lx * properties.Ly / (properties.T * properties.T);
+	const double chi = get_mag_variance(properties.measurements) * properties.Lx * properties.Ly / properties.T;
 	return { properties.T, mean_energy, cv, mean_magnetization, chi };
 }

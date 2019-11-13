@@ -31,34 +31,34 @@ magneto::PhysicalMeasurement magneto::get_properties(const IsingSystem& system){
 
 __declspec(noinline)
 int magneto::get_dE(const LatticeType& grid, int i, int j){
-	const int L = static_cast<int>(grid.size());
+   const auto [Lx, Ly] = get_dimensions_of_lattice(grid);
 	return 2 * grid[i][j] * (
-		grid[i][(j + 1) % L] +
-		grid[(i + 1) % L][j] +
-		grid[i][(j - 1 + L) % L] +
-		grid[(i - 1 + L) % L][j]);
+		grid[i][(j + 1) % Lx] +
+		grid[(i + 1) % Ly][j] +
+		grid[i][(j - 1 + Lx) % Lx] +
+		grid[(i - 1 + Ly) % Ly][j]);
 }
 
 
 double magneto::get_E(const LatticeType& grid){
-   const int L = static_cast<int>(grid.size());
+   const auto [Lx, Ly] = get_dimensions_of_lattice(grid);
    int E = 0;
-   for (int i = 0; i < L; ++i) {
-      for (int j = 0; j < L; ++j)
-         E += -grid[i][j] * (grid[i][(j + 1) % L] + grid[(i + 1) % L][j]);
+   for (int i = 0; i < Ly; ++i) {
+      for (int j = 0; j < Lx; ++j)
+         E += -grid[i][j] * (grid[i][(j + 1) % Lx] + grid[(i + 1) % Ly][j]);
    }
-   return E * 1.0 / (L * L);
+   return E * 1.0 / (Lx * Ly);
 }
 
 
 double magneto::get_m_abs(const LatticeType& grid){
-   const int L = static_cast<int>(grid.size());
+   const auto [Lx, Ly] = get_dimensions_of_lattice(grid);
    int m = 0;
-   for (int i = 0; i < L; ++i) {
-      for (int j = 0; j < L; ++j)
+   for (int i = 0; i < Ly; ++i) {
+      for (int j = 0; j < Lx; ++j)
          m += grid[i][j];
    }
-   return std::abs(m) * 1.0 / (L * L);
+   return std::abs(m) * 1.0 / (Lx * Ly);
 }
 
 
@@ -87,13 +87,13 @@ magneto::IsingSystem::IsingSystem(const int j, const magneto::LatticeType& initi
 {}
 
 
-magneto::LatticeType magneto::get_randomized_system(const int L) {
+magneto::LatticeType magneto::get_randomized_system(const int Lx, const int Ly) {
    unsigned seed1 = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
    std::mt19937_64 generator(seed1);
    std::uniform_int_distribution<int> dist(0, 1);
-   magneto::LatticeType grid(L, std::vector<char>(L));
-   for (int i = 0; i < L; ++i) {
-      for (int j = 0; j < L; ++j) {
+   magneto::LatticeType grid(Ly, std::vector<char>(Lx));
+   for (int i = 0; i < Ly; ++i) {
+      for (int j = 0; j < Lx; ++j) {
          grid[i][j] = static_cast<char>(dist(generator) * 2 - 1);
       }
    }

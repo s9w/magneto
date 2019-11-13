@@ -13,7 +13,7 @@ namespace magneto {
 
    class Metropolis : public LatticeAlgorithm {
    public:
-      Metropolis(const int J, const double T, const int L, const int max_rng_threads = 2);
+      Metropolis(const int J, const double T, const int Lx, const int Ly, const int max_rng_threads = 2);
       virtual void run(LatticeType& lattice);
 
    private:
@@ -26,7 +26,7 @@ namespace magneto {
 
    class VariableMetropolis : public LatticeAlgorithm {
    public:
-      VariableMetropolis(const int J, const LatticeDType& T, const int L, const int max_rng_threads = 2);
+      VariableMetropolis(const int J, const LatticeDType& T, const int Lx, const int Ly, const int max_rng_threads = 2);
       virtual void run(LatticeType& lattice);
 
    private:
@@ -39,7 +39,7 @@ namespace magneto {
 
    class SW : public LatticeAlgorithm {
    public:
-      SW(const int J, const double T, const int L, const int max_rng_threads = 1);
+      SW(const int J, const double T, const int Lx, const int Ly, const int max_rng_threads = 1);
       virtual void run(LatticeType& lattice);
 
    private:
@@ -54,7 +54,7 @@ namespace magneto {
 
    class VariableSW : public LatticeAlgorithm {
    public:
-      VariableSW(const int J, const LatticeDType& T, const int L, const int max_rng_threads = 1);
+      VariableSW(const int J, const LatticeDType& T, const int Lx, const int Ly, const int max_rng_threads = 1);
       virtual void run(LatticeType& lattice);
 
    private:

@@ -30,41 +30,42 @@ namespace magneto {
    
 
    struct JsonJob {
-      SpinStartMode m_spin_start_mode = SpinStartMode::Random;
-      std::filesystem::path m_spin_start_image_path;
-      std::filesystem::path m_temperature_image;
-      TempStartMode m_temp_mode = TempStartMode::Single;
+      SpinStartMode spin_start_mode = SpinStartMode::Random;
+      std::filesystem::path spin_start_image_path;
+      std::filesystem::path temperature_image;
+      TempStartMode temp_mode = TempStartMode::Single;
 
-      double m_t_single = 2.26;
+      double t_single = 2.26;
 
       // this for image temp start and many temps
-      double m_t_min = 2.0;
-      double m_t_max = 2.5;
-
-      std::vector<double> m_temperatures;
+      double t_min = 2.0;
+      double t_max = 2.5;
 
       // this only for many temps
-      unsigned int m_temp_steps = 3;
+      unsigned int temp_steps = 3;
 
       // How many Swendsen-Wang runs before anything is being recorded/computed
-      unsigned int m_start_runs = 0;
+      unsigned int start_runs = 0;
 
-      unsigned int m_L = 400;
-      unsigned int m_n = 100;
-      int m_J = 1;
+      unsigned int L = 0;
+      unsigned int Lx = 0;
+      unsigned int Ly = 0;
+      unsigned int n = 100;
+      int J = 1;
 
       // Algorithm used for propagation (after the initial start runs)
-      Algorithm m_algorithm = Algorithm::Metropolis;
+      Algorithm algorithm = Algorithm::Metropolis;
 
-      ImageMode m_image_mode;
+      ImageMode image_mode;
 
-      PhysicsConfig m_physics_config;
+      PhysicsConfig physics_config;
    };
 
 
    struct Job {
       // system start
-      unsigned int m_L = 400;
+      unsigned int m_Lx = 500;
+      unsigned int m_Ly = 500;
       int m_J = 1;
       //std::variant<LatticeDType, std::vector<double>> T;
       LatticeType initial_spins;

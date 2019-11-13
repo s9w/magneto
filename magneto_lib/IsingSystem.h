@@ -31,7 +31,8 @@ namespace magneto {
    struct PhysicalProperties {
       std::vector<PhysicalMeasurement> measurements;
       double T;
-      unsigned int L;
+      unsigned int Lx;
+      unsigned int Ly;
    };
 
    PhysicalMeasurement operator+(const PhysicalMeasurement& a, const PhysicalMeasurement& b);
@@ -47,6 +48,6 @@ namespace magneto {
    /// <summary>Returns normalized absolute magnetization</summary>
    double get_m_abs(const LatticeType& grid);
 
-   LatticeType get_randomized_system(const int L);
+   LatticeType get_randomized_system(const int Lx, const int Ly);
 	
 }

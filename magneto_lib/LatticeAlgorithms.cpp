@@ -38,48 +38,47 @@ namespace {
 
 
    struct LatticeIndexGetter {
-      LatticeIndexGetter(const size_t buffer_size, const int lattice_size) : m_buffer_size(buffer_size), m_lattice_size(lattice_size) {};
+      LatticeIndexGetter(const size_t buffer_size, const int Lx, const int Ly) : m_buffer_size(buffer_size), m_Lx(Lx), m_Ly(Ly) {};
       magneto::IndexPairVector operator()() {
          const std::string thread_id = thread_id_to_string(std::this_thread::get_id());
          unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
          std::mt19937_64 rng(seed);
-         std::uniform_int_distribution<> dist_lattice(0, m_lattice_size - 1);
+         std::uniform_int_distribution<> dist_lattice_i(0, m_Ly - 1);
+         std::uniform_int_distribution<> dist_lattice_j(0, m_Lx - 1);
          magneto::IndexPairVector indices;
          indices.reserve(m_buffer_size);
          for (int i = 0; i < m_buffer_size; ++i)
-            indices.emplace_back(dist_lattice(rng), dist_lattice(rng));
+            indices.emplace_back(dist_lattice_i(rng), dist_lattice_j(rng));
          magneto::get_logger()->debug("get_lattice_indices() done from thread {}", thread_id);
          return indices;
       }
       size_t m_buffer_size;
-      int m_lattice_size;
+      int m_Lx;
+      int m_Ly;
    };
 
 } // namespace {}
 
 
-magneto::Metropolis::Metropolis(const int J, const double T, const int L, const int max_rng_threads)
+magneto::Metropolis::Metropolis(const int J, const double T, const int Lx, const int Ly, const int max_rng_threads)
    : m_cached_exp_values(get_cached_exp_values(J, T))
    , m_J(J)
-   , m_lattice_index_buffer(LatticeIndexGetter(L*L, L), max_rng_threads)
-   , m_random_buffer(RandomBufferGetter(L*L), max_rng_threads)
+   , m_lattice_index_buffer(LatticeIndexGetter(Lx*Ly, Lx, Ly), max_rng_threads)
+   , m_random_buffer(RandomBufferGetter(Lx*Ly), max_rng_threads)
 { }
 
 
 magneto::VariableMetropolis::VariableMetropolis(
-   const int J, const LatticeDType& T, const int L, const int max_rng_threads /*= 2*/
+   const int J, const LatticeDType& T, const int Lx, const int Ly, const int max_rng_threads /*= 2*/
 )
    : m_J(J)
-   , m_lattice_index_buffer(LatticeIndexGetter(L* L, L), max_rng_threads)
-   , m_random_buffer(RandomBufferGetter(L* L), max_rng_threads)
+   , m_lattice_index_buffer(LatticeIndexGetter(Lx*Ly, Lx, Ly), max_rng_threads)
+   , m_random_buffer(RandomBufferGetter(Lx*Ly), max_rng_threads)
    , m_T(T)
 { }
 
 
 void magneto::VariableMetropolis::run(LatticeType& lattice){
-   const int L = static_cast<int>(lattice.size());
-   std::uniform_int_distribution <int> dist_grid(0, L - 1);
-   std::uniform_real_distribution <double > dist_one(0.0, 1.0);
    int flip_i, flip_j;
    int dE;
    for (int i = 0; i < m_random_buffer.get_buffer().size(); ++i) {
@@ -96,9 +95,6 @@ void magneto::VariableMetropolis::run(LatticeType& lattice){
 }
 
 void magneto::Metropolis::run(LatticeType& lattice){
-   const int L = static_cast<int>(lattice.size());
-   std::uniform_int_distribution <int> dist_grid(0, L - 1);
-   std::uniform_real_distribution <double > dist_one(0.0, 1.0);
    const int buffer_offset = get_exp_buffer_offset(m_J);
    int flip_i, flip_j;
    int dE;
@@ -127,12 +123,12 @@ std::vector<double> magneto::get_cached_exp_values(const int J, const double T) 
 }
 
 
-magneto::SW::SW(const int J, const double T, const int L, const int max_rng_threads)
+magneto::SW::SW(const int J, const double T, const int Lx, const int Ly, const int max_rng_threads)
    : m_J(J)
    , m_T(T)
-   , m_bond_north_buffer(RandomBufferGetter(L*L), max_rng_threads)
-   , m_bond_east_buffer(RandomBufferGetter(L*L), max_rng_threads)
-   , m_flip_buffer(RandomBufferGetter(L*L), max_rng_threads)
+   , m_bond_north_buffer(RandomBufferGetter(Lx*Ly), max_rng_threads)
+   , m_bond_east_buffer(RandomBufferGetter(Lx*Ly), max_rng_threads)
+   , m_flip_buffer(RandomBufferGetter(Lx*Ly), max_rng_threads)
 { }
 
 
@@ -143,16 +139,17 @@ void magneto::SW::run(LatticeType& lattice){
    LatticeType doesBondNorth;
    LatticeType doesBondEast;
 
-   const int L = static_cast<int>(lattice.size());
+   //const int L = static_cast<int>(lattice.size());
    bool flipCluster;
-   int x, y, nx, ny;
-   discovered.assign(L, std::vector<char>(L, 0));
-   doesBondNorth.assign(L, std::vector<char>(L, 0));
-   doesBondEast.assign(L, std::vector<char>(L, 0));
+   int deq_i, deq_j, deq_i_adj, deq_j_adj;
+   const auto [Lx, Ly] = get_dimensions_of_lattice(lattice);
+   discovered.assign(Ly, std::vector<char>(Lx, 0));
+   doesBondNorth.assign(Ly, std::vector<char>(Lx, 0));
+   doesBondEast.assign(Ly, std::vector<char>(Lx, 0));
 
    int counter = 0;
-   for (int i = 0; i < L; ++i) {
-      for (int j = 0; j < L; ++j) {
+   for (int i = 0; i < Ly; ++i) {
+      for (int j = 0; j < Lx; ++j) {
          doesBondNorth[i][j] = m_bond_north_buffer.get_buffer()[counter] < freezeProbability;
          doesBondEast[i][j] = m_bond_east_buffer.get_buffer()[counter] < freezeProbability;
          ++counter;
@@ -160,47 +157,47 @@ void magneto::SW::run(LatticeType& lattice){
    }
 
    counter = 0;
-   for (int i = 0; i < L; ++i) {
-      for (int j = 0; j < L; ++j) {
+   for (int i = 0; i < Ly; ++i) {
+      for (int j = 0; j < Lx; ++j) {
          if (!discovered[i][j]) {
             flipCluster = m_flip_buffer.get_buffer()[counter] < 0.5;
             std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));
             discovered[i][j] = 1;
 
             while (!deq.empty()) {
-               x = std::get<0>(deq.front());
-               y = std::get<1>(deq.front());
+               deq_i = std::get<0>(deq.front());
+               deq_j = std::get<1>(deq.front());
 
-               nx = x;
-               ny = (y + 1) % L;
-               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][y]) {
-                  deq.push_back(std::make_tuple(nx, ny));
-                  discovered[nx][ny] = 1;
+               deq_i_adj = deq_i;
+               deq_j_adj = (deq_j + 1) % Lx;
+               if (lattice[deq_i][deq_j] == lattice[deq_i_adj][deq_j_adj] && discovered[deq_i_adj][deq_j_adj] == 0 && doesBondNorth[deq_i][deq_j]) {
+                  deq.push_back(std::make_tuple(deq_i_adj, deq_j_adj));
+                  discovered[deq_i_adj][deq_j_adj] = 1;
                }
 
-               nx = (x + 1) % L;
-               ny = y;
-               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[x][y]) {
-                  deq.push_back(std::make_tuple(nx, ny));
-                  discovered[nx][ny] = 1;
+               deq_i_adj = (deq_i + 1) % Ly;
+               deq_j_adj = deq_j;
+               if (lattice[deq_i][deq_j] == lattice[deq_i_adj][deq_j_adj] && discovered[deq_i_adj][deq_j_adj] == 0 && doesBondEast[deq_i][deq_j]) {
+                  deq.push_back(std::make_tuple(deq_i_adj, deq_j_adj));
+                  discovered[deq_i_adj][deq_j_adj] = 1;
                }
 
-               nx = x;
-               ny = (y - 1 + L) % L;
-               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][ny]) {
-                  deq.push_back(std::make_tuple(nx, ny));
-                  discovered[nx][ny] = 1;
+               deq_i_adj = deq_i;
+               deq_j_adj = (deq_j - 1 + Lx) % Lx;
+               if (lattice[deq_i][deq_j] == lattice[deq_i_adj][deq_j_adj] && discovered[deq_i_adj][deq_j_adj] == 0 && doesBondNorth[deq_i][deq_j_adj]) {
+                  deq.push_back(std::make_tuple(deq_i_adj, deq_j_adj));
+                  discovered[deq_i_adj][deq_j_adj] = 1;
                }
 
-               nx = (x - 1 + L) % L;
-               ny = y;
-               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[nx][y]) {
-                  deq.push_back(std::make_tuple(nx, ny));
-                  discovered[nx][ny] = 1;
+               deq_i_adj = (deq_i - 1 + Ly) % Ly;
+               deq_j_adj = deq_j;
+               if (lattice[deq_i][deq_j] == lattice[deq_i_adj][deq_j_adj] && discovered[deq_i_adj][deq_j_adj] == 0 && doesBondEast[deq_i_adj][deq_j]) {
+                  deq.push_back(std::make_tuple(deq_i_adj, deq_j_adj));
+                  discovered[deq_i_adj][deq_j_adj] = 1;
                }
 
                if (flipCluster)
-                  lattice[x][y] *= -1;
+                  lattice[deq_i][deq_j] *= -1;
                deq.pop_front();
             }
          }
@@ -214,10 +211,10 @@ void magneto::SW::run(LatticeType& lattice){
 }
 
 
-magneto::LatticeDType get_freeze_probability(const int L, const int J, const magneto::LatticeDType& temps) {
-   magneto::LatticeDType probabilities(L, std::vector<double>(L));
-   for (int i = 0; i < L; ++i) {
-      for (int j = 0; j < L; ++j) {
+magneto::LatticeDType get_freeze_probability(const int Lx, const int Ly, const int J, const magneto::LatticeDType& temps) {
+   magneto::LatticeDType probabilities(Ly, std::vector<double>(Lx));
+   for (int i = 0; i < Ly; ++i) {
+      for (int j = 0; j < Lx; ++j) {
          probabilities[i][j] = 1.0 - exp(-2.0f * J / temps[i][j]);
       }
    }
@@ -225,12 +222,12 @@ magneto::LatticeDType get_freeze_probability(const int L, const int J, const mag
 }
 
 
-magneto::VariableSW::VariableSW(const int J, const LatticeDType& T, const int L, const int max_rng_threads)
+magneto::VariableSW::VariableSW(const int J, const LatticeDType& T, const int Lx, const int Ly, const int max_rng_threads)
    : m_J(J)
-   , m_bond_north_buffer(RandomBufferGetter(L* L), max_rng_threads)
-   , m_bond_east_buffer(RandomBufferGetter(L* L), max_rng_threads)
-   , m_flip_buffer(RandomBufferGetter(L* L), max_rng_threads)
-   , m_freeze_probability(get_freeze_probability(L, J, T))
+   , m_bond_north_buffer(RandomBufferGetter(Lx*Ly), max_rng_threads)
+   , m_bond_east_buffer(RandomBufferGetter(Lx*Ly), max_rng_threads)
+   , m_flip_buffer(RandomBufferGetter(Lx*Ly), max_rng_threads)
+   , m_freeze_probability(get_freeze_probability(Lx, Ly, J, T))
 { }
 
 
@@ -239,16 +236,16 @@ void magneto::VariableSW::run(LatticeType& lattice) {
    LatticeType doesBondNorth;
    LatticeType doesBondEast;
 
-   const int L = static_cast<int>(lattice.size());
    bool flipCluster;
-   int x, y, nx, ny;
-   discovered.assign(L, std::vector<char>(L, 0));
-   doesBondNorth.assign(L, std::vector<char>(L, 0));
-   doesBondEast.assign(L, std::vector<char>(L, 0));
+   const auto [Lx, Ly] = get_dimensions_of_lattice(lattice);
+   int deq_i, deq_j, deq_i_adj, deq_j_adj;
+   discovered.assign(Ly, std::vector<char>(Lx, 0));
+   doesBondNorth.assign(Ly, std::vector<char>(Lx, 0));
+   doesBondEast.assign(Ly, std::vector<char>(Lx, 0));
 
    int counter = 0;
-   for (int i = 0; i < L; ++i) {
-      for (int j = 0; j < L; ++j) {
+   for (int i = 0; i < Ly; ++i) {
+      for (int j = 0; j < Lx; ++j) {
          doesBondNorth[i][j] = m_bond_north_buffer.get_buffer()[counter] < m_freeze_probability[i][j];
          doesBondEast[i][j] = m_bond_east_buffer.get_buffer()[counter] < m_freeze_probability[i][j];
          ++counter;
@@ -256,47 +253,47 @@ void magneto::VariableSW::run(LatticeType& lattice) {
    }
 
    counter = 0;
-   for (int i = 0; i < L; ++i) {
-      for (int j = 0; j < L; ++j) {
+   for (int i = 0; i < Ly; ++i) {
+      for (int j = 0; j < Lx; ++j) {
          if (!discovered[i][j]) {
             flipCluster = m_flip_buffer.get_buffer()[counter] < 0.5;
             std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));
             discovered[i][j] = 1;
 
             while (!deq.empty()) {
-               x = std::get<0>(deq.front());
-               y = std::get<1>(deq.front());
+               deq_i = std::get<0>(deq.front());
+               deq_j = std::get<1>(deq.front());
 
-               nx = x;
-               ny = (y + 1) % L;
-               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][y]) {
-                  deq.push_back(std::make_tuple(nx, ny));
-                  discovered[nx][ny] = 1;
+               deq_i_adj = deq_i;
+               deq_j_adj = (deq_j + 1) % Lx;
+               if (lattice[deq_i][deq_j] == lattice[deq_i_adj][deq_j_adj] && discovered[deq_i_adj][deq_j_adj] == 0 && doesBondNorth[deq_i][deq_j]) {
+                  deq.push_back(std::make_tuple(deq_i_adj, deq_j_adj));
+                  discovered[deq_i_adj][deq_j_adj] = 1;
                }
 
-               nx = (x + 1) % L;
-               ny = y;
-               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[x][y]) {
-                  deq.push_back(std::make_tuple(nx, ny));
-                  discovered[nx][ny] = 1;
+               deq_i_adj = (deq_i + 1) % Ly;
+               deq_j_adj = deq_j;
+               if (lattice[deq_i][deq_j] == lattice[deq_i_adj][deq_j_adj] && discovered[deq_i_adj][deq_j_adj] == 0 && doesBondEast[deq_i][deq_j]) {
+                  deq.push_back(std::make_tuple(deq_i_adj, deq_j_adj));
+                  discovered[deq_i_adj][deq_j_adj] = 1;
                }
 
-               nx = x;
-               ny = (y - 1 + L) % L;
-               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondNorth[x][ny]) {
-                  deq.push_back(std::make_tuple(nx, ny));
-                  discovered[nx][ny] = 1;
+               deq_i_adj = deq_i;
+               deq_j_adj = (deq_j - 1 + Lx) % Lx;
+               if (lattice[deq_i][deq_j] == lattice[deq_i_adj][deq_j_adj] && discovered[deq_i_adj][deq_j_adj] == 0 && doesBondNorth[deq_i][deq_j_adj]) {
+                  deq.push_back(std::make_tuple(deq_i_adj, deq_j_adj));
+                  discovered[deq_i_adj][deq_j_adj] = 1;
                }
 
-               nx = (x - 1 + L) % L;
-               ny = y;
-               if (lattice[x][y] == lattice[nx][ny] && discovered[nx][ny] == 0 && doesBondEast[nx][y]) {
-                  deq.push_back(std::make_tuple(nx, ny));
-                  discovered[nx][ny] = 1;
+               deq_i_adj = (deq_i - 1 + Ly) % Ly;
+               deq_j_adj = deq_j;
+               if (lattice[deq_i][deq_j] == lattice[deq_i_adj][deq_j_adj] && discovered[deq_i_adj][deq_j_adj] == 0 && doesBondEast[deq_i_adj][deq_j]) {
+                  deq.push_back(std::make_tuple(deq_i_adj, deq_j_adj));
+                  discovered[deq_i_adj][deq_j_adj] = 1;
                }
 
                if (flipCluster)
-                  lattice[x][y] *= -1;
+                  lattice[deq_i][deq_j] *= -1;
                deq.pop_front();
             }
          }
