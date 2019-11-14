@@ -72,16 +72,6 @@ namespace {
 } // namespace {}
 
 
-std::filesystem::path magneto::get_resized_image_path(const std::filesystem::path& original_path) {
-   std::filesystem::path new_path = original_path;
-   std::filesystem::path new_filename = original_path.stem();
-   new_filename += "_resized";
-   new_filename += original_path.extension();
-   new_path.replace_filename(new_filename);
-   return new_path;
-}
-
-
 std::optional<std::string> magneto::get_file_contents(const std::filesystem::path& path){
    const std::filesystem::path current = std::filesystem::current_path();
    std::filesystem::path complete_path = current / path;
@@ -106,11 +96,15 @@ void magneto::write_string_to_file(const std::filesystem::path& path, const std:
 }
 
 
-magneto::LatticeDType magneto::get_lattice_temps_from_png_file(
+std::optional<magneto::LatticeDType> magneto::get_lattice_temps_from_png_file(
    const std::filesystem::path& path, const double temp_min, const double temp_max
 ) {
    int x, y, bpp;
    unsigned char* image_data = stbi_load(path.string().c_str(), &x, &y, &bpp, 0);
+   if (image_data == nullptr) {
+      magneto::get_logger()->error("Couldn't open image {}", path.string());
+      return std::nullopt;
+   }
    magneto::LatticeDType temps(y, std::vector<double>(x, 2.26));
    const double temp_factor = temp_max - temp_min;
    for (int i = 0; i < y; ++i) {
@@ -138,4 +132,41 @@ std::optional<magneto::LatticeType> magneto::get_spin_state_from_png(const std::
    magneto::LatticeType lattice = get_lattice_from_png_data(data, bpp, x, y);
    stbi_image_free(data);
    return lattice;
+}
+
+
+magneto::FileResizer::FileResizer(const std::filesystem::path& path, const int new_x, const int new_y)
+   : m_temp_path(get_resized_image_path(path))
+{
+   const std::string cmd = fmt::format(
+      "{ffmpeg} -y -hide_banner -loglevel panic -i {input} -vf scale={x}:{y} {output}",
+      fmt::arg("ffmpeg", "ffmpeg.exe"),
+      fmt::arg("input", path.string()),
+      fmt::arg("output", m_temp_path.string()),
+      fmt::arg("x", new_x),
+      fmt::arg("y", new_y)
+   );
+   system(cmd.c_str());
+}
+
+
+magneto::FileResizer::~FileResizer(){
+   if (!std::filesystem::remove(m_temp_path)) {
+      magneto::get_logger()->error("Couldn't remove temporary file {}.", m_temp_path.string());
+   }
+}
+
+
+std::filesystem::path magneto::FileResizer::get_temp_file() const{
+   return m_temp_path;
+}
+
+std::filesystem::path magneto::FileResizer::get_resized_image_path(const std::filesystem::path& original_path){
+   std::filesystem::path new_path = original_path;
+   std::filesystem::path new_filename = original_path.stem();
+   new_filename += "_resized";
+   new_filename += original_path.extension();
+
+   new_path.replace_filename(new_filename);
+   return new_path;
 }

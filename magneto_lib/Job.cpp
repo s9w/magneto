@@ -70,11 +70,12 @@ namespace {
    }
 
 
-   std::variant<magneto::LatticeDType, std::vector<double>>
+   std::optional<std::variant<magneto::LatticeDType, std::vector<double>>>
    get_temp_variant(const magneto::JsonJob& job) {
       std::variant<magneto::LatticeDType, std::vector<double>> T;
-      if (job.temp_mode == magneto::TempStartMode::Image)
+      if (job.temp_mode == magneto::TempStartMode::Image) {
          return magneto::get_lattice_temps_from_png_file(job.temperature_image, job.t_min, job.t_max);
+      }
       else if (job.temp_mode == magneto::TempStartMode::Single)
          return std::vector<double>{ job.t_min };
       else
@@ -157,50 +158,21 @@ magneto::JsonJob magneto::get_parsed_job(const std::string& file_contents){
 }
 
 
-std::optional<magneto::LatticeType> get_corrected_image_spin_state(
-   std::optional<magneto::LatticeType> image_spin_state,
-   unsigned int Lx, 
-   unsigned int Ly,
-   const magneto::JsonJob& json_job
-)
-{
-   if (!image_spin_state.has_value())
-      return image_spin_state.value();
-   const auto [x, y] = magneto::get_dimensions_of_lattice(image_spin_state.value());
-   if(x == Ly && y == Ly)
-      return image_spin_state.value();
-
-   // There is an image-based spin state and its size is wrong
-   return magneto::get_resized_data<magneto::LatticeType>(
-      json_job.spin_start_image_path,
-      Lx,
-      Ly,
-      [](const std::filesystem::path path) {return magneto::get_spin_state_from_png(path).value(); }
-   );
-}
-
-
-std::variant<magneto::LatticeDType, std::vector<double>>
-get_corrected_temp_state(
-   const std::variant<magneto::LatticeDType, std::vector<double>>& t_variant,
+template<class T>
+std::optional<T> get_resized_image_state(
+   const T& image_spin_state,
    unsigned int Lx,
    unsigned int Ly,
-   const magneto::JsonJob& job
-) {
-   if (!std::holds_alternative<magneto::LatticeDType>(t_variant))
-      return t_variant;
-   const auto [x, y] = magneto::get_dimensions_of_lattice(std::get<magneto::LatticeDType>(t_variant));
+   const std::filesystem::path& ppath,
+   const std::function<std::optional<T>(const std::filesystem::path& path)>& fun
+)
+{
+   const auto [x, y] = magneto::get_dimensions_of_lattice(image_spin_state);
    if (x == Ly && y == Ly)
-      return t_variant;
+      return image_spin_state;
 
-   // There is an image-based temp state and its size is wrong
-   //return magneto::get_lattice_temps_from_png_file(job.temperature_image, job.t_min, job.t_max, Lx, Ly);
-   return magneto::get_resized_data<magneto::LatticeDType>(
-      job.temperature_image,
-      Lx,
-      Ly,
-      [&](const std::filesystem::path path) {return magneto::get_lattice_temps_from_png_file(path, job.t_min, job.t_max); }
-   );
+   // There is an image-based spin state and its size is wrong
+   return magneto::get_resized_data<std::optional<T>>(ppath, Lx, Ly, fun);
 }
 
 
@@ -212,14 +184,35 @@ magneto::get_job(const JsonJob& json_job){
    // A word about System size: The user can supply it explicitly, he can also supply images that
    // can be used to implicitly infer the system size. Trouble arises when the explicit size doesn't
    // match the image sizes. Then, these are being resized to the system size and read again.
-   std::optional<magneto::LatticeType> image_spin_state = get_spin_state_from_job(json_job);
+   std::optional<LatticeType> image_spin_state = get_spin_state_from_job(json_job);
    auto t = get_temp_variant(json_job);
+   if (!t.has_value()) {
+      return {};
+   }
 
-   std::tie(job.m_Lx, job.m_Ly) = get_system_size(json_job, image_spin_state, t);
+   std::tie(job.m_Lx, job.m_Ly) = get_system_size(json_job, image_spin_state, t.value());
 
    // Resize image-based data if necessary
-   image_spin_state = get_corrected_image_spin_state(image_spin_state, job.m_Lx, job.m_Ly, json_job);
-   t = get_corrected_temp_state(t, job.m_Lx, job.m_Ly, json_job);
+   if (image_spin_state.has_value()) {
+      const auto fun = [](const std::filesystem::path path) {return get_spin_state_from_png(path); };
+      image_spin_state = get_resized_image_state<LatticeType>(
+         image_spin_state.value(), 
+         job.m_Lx,
+         job.m_Ly, 
+         json_job.spin_start_image_path,
+         fun
+      );
+   }
+   if (std::holds_alternative<LatticeDType>(t.value())) {
+      const auto fun = [&](const std::filesystem::path path) {return get_lattice_temps_from_png_file(path, json_job.t_min, json_job.t_max); };
+      t = get_resized_image_state<LatticeDType>(
+         std::get<LatticeDType>(t.value()),
+         job.m_Lx,
+         job.m_Ly,
+         json_job.temperature_image,
+         fun
+      );
+   }
    
    if (json_job.spin_start_mode == SpinStartMode::Random)
       job.initial_spins = get_randomized_system(job.m_Lx, job.m_Ly);
@@ -233,7 +226,7 @@ magneto::get_job(const JsonJob& json_job){
    job.m_image_mode = json_job.image_mode;
    job.m_physics_config = json_job.physics_config;
 
-   return { job, t };
+   return { job, t.value() };
 }
 
 
