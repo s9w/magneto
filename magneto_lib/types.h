@@ -15,8 +15,8 @@ namespace magneto {
 
    template<class T>
    std::pair<unsigned int, unsigned int> get_dimensions_of_lattice(const magneto::LatticeTType<T>& lattice) {
-      const int Ly = lattice.size();
-      const int Lx = lattice[0].size();
+      const unsigned int Ly = static_cast<unsigned int>(lattice.size());
+      const unsigned int Lx = static_cast<unsigned int>(lattice[0].size());
       return { Lx, Ly };
    }
 }

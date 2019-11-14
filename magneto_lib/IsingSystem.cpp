@@ -43,8 +43,8 @@ int magneto::get_dE(const LatticeType& grid, int i, int j){
 double magneto::get_E(const LatticeType& grid){
    const auto [Lx, Ly] = get_dimensions_of_lattice(grid);
    int E = 0;
-   for (int i = 0; i < Ly; ++i) {
-      for (int j = 0; j < Lx; ++j)
+   for (unsigned int i = 0; i < Ly; ++i) {
+      for (unsigned int j = 0; j < Lx; ++j)
          E += -grid[i][j] * (grid[i][(j + 1) % Lx] + grid[(i + 1) % Ly][j]);
    }
    return E * 1.0 / (Lx * Ly);
@@ -54,8 +54,8 @@ double magneto::get_E(const LatticeType& grid){
 double magneto::get_m_abs(const LatticeType& grid){
    const auto [Lx, Ly] = get_dimensions_of_lattice(grid);
    int m = 0;
-   for (int i = 0; i < Ly; ++i) {
-      for (int j = 0; j < Lx; ++j)
+   for (unsigned int i = 0; i < Ly; ++i) {
+      for (unsigned int j = 0; j < Lx; ++j)
          m += grid[i][j];
    }
    return std::abs(m) * 1.0 / (Lx * Ly);

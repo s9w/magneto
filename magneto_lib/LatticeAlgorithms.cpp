@@ -148,8 +148,8 @@ void magneto::SW::run(LatticeType& lattice){
    doesBondEast.assign(Ly, std::vector<char>(Lx, 0));
 
    int counter = 0;
-   for (int i = 0; i < Ly; ++i) {
-      for (int j = 0; j < Lx; ++j) {
+   for (unsigned int i = 0; i < Ly; ++i) {
+      for (unsigned int j = 0; j < Lx; ++j) {
          doesBondNorth[i][j] = m_bond_north_buffer.get_buffer()[counter] < freezeProbability;
          doesBondEast[i][j] = m_bond_east_buffer.get_buffer()[counter] < freezeProbability;
          ++counter;
@@ -157,8 +157,8 @@ void magneto::SW::run(LatticeType& lattice){
    }
 
    counter = 0;
-   for (int i = 0; i < Ly; ++i) {
-      for (int j = 0; j < Lx; ++j) {
+   for (unsigned int i = 0; i < Ly; ++i) {
+      for (unsigned int j = 0; j < Lx; ++j) {
          if (!discovered[i][j]) {
             flipCluster = m_flip_buffer.get_buffer()[counter] < 0.5;
             std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));
@@ -244,8 +244,8 @@ void magneto::VariableSW::run(LatticeType& lattice) {
    doesBondEast.assign(Ly, std::vector<char>(Lx, 0));
 
    int counter = 0;
-   for (int i = 0; i < Ly; ++i) {
-      for (int j = 0; j < Lx; ++j) {
+   for (unsigned int i = 0; i < Ly; ++i) {
+      for (unsigned int j = 0; j < Lx; ++j) {
          doesBondNorth[i][j] = m_bond_north_buffer.get_buffer()[counter] < m_freeze_probability[i][j];
          doesBondEast[i][j] = m_bond_east_buffer.get_buffer()[counter] < m_freeze_probability[i][j];
          ++counter;
@@ -253,8 +253,8 @@ void magneto::VariableSW::run(LatticeType& lattice) {
    }
 
    counter = 0;
-   for (int i = 0; i < Ly; ++i) {
-      for (int j = 0; j < Lx; ++j) {
+   for (unsigned int i = 0; i < Ly; ++i) {
+      for (unsigned int j = 0; j < Lx; ++j) {
          if (!discovered[i][j]) {
             flipCluster = m_flip_buffer.get_buffer()[counter] < 0.5;
             std::deque<std::tuple<int, int>> deq(1, std::make_tuple(i, j));

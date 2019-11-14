@@ -69,8 +69,8 @@ namespace {
 	/// <summary>Fills the buffer with the grid data. Output is in [0,255] range.</summary>
 	void add_grid_to_buffer(magneto::LatticeIType& buffer, const magneto::LatticeType& grid) {
       const auto [Lx, Ly] = magneto::get_dimensions_of_lattice(grid);
-		for (int i = 0; i < Ly; ++i) {
-			for (int j = 0; j < Lx; ++j) {
+		for (unsigned int i = 0; i < Ly; ++i) {
+			for (unsigned int j = 0; j < Lx; ++j) {
 				buffer[i][j] += get_255_value_from_pm_one(grid[i][j]);
 			}
 		}
@@ -170,8 +170,8 @@ void magneto::TemporalAverageLattice::add(const LatticeType & grid){
 
 magneto::LatticeIType magneto::TemporalAverageLattice::get_average(){
    const auto [Lx, Ly] = get_dimensions_of_lattice(m_buffer);
-	for (int i = 0; i < Ly; ++i) {
-		for (int j = 0; j < Lx; ++j) {
+	for (unsigned int i = 0; i < Ly; ++i) {
+		for (unsigned int j = 0; j < Lx; ++j) {
 			m_buffer[i][j] /= m_recorded_frames;
 		}
 	}
@@ -181,8 +181,8 @@ magneto::LatticeIType magneto::TemporalAverageLattice::get_average(){
 
 void magneto::TemporalAverageLattice::clear(){
    const auto [Lx, Ly] = get_dimensions_of_lattice(m_buffer);
-	for (int i = 0; i < Ly; ++i) {
-		for (int j = 0; j < Lx; ++j) {
+	for (unsigned int i = 0; i < Ly; ++i) {
+		for (unsigned int j = 0; j < Lx; ++j) {
 			m_buffer[i][j] = 0;
 		}
 	}
